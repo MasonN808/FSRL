@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from tianshou.env import BaseVectorEnv
-from tianshou.utils.net.common import Net
+from tianshou.utils.net.common import Net, DataParallelNet
 from tianshou.utils.net.continuous import ActorProb, Critic
 from torch.distributions import Independent, Normal
 
@@ -14,6 +14,7 @@ from fsrl.policy import CPO
 from fsrl.utils import BaseLogger
 from fsrl.utils.exp_util import auto_name, seed_all
 from fsrl.utils.net.common import ActorCritic
+
 
 
 class CPOAgent(OnpolicyAgent):
@@ -104,25 +105,24 @@ class CPOAgent(OnpolicyAgent):
         # set seed and computing
         seed_all(seed)
         torch.set_num_threads(thread)
-        print("IT WORKS SKFLDJklsdkfa;ldkjaljsd;lkfjas;ldkfj;lsjkfs")
-        exit()
+
         # model
         state_shape = env.observation_space.shape or env.observation_space.n
-        state_shape = state_shape.to(device) # Added .to(device)
+        # state_shape = state_shape.to(device) # Added .to(device)
         action_shape = env.action_space.shape or env.action_space.n
-        action_shape = action_shape.to(device) # Added .to(device)
+        # action_shape = action_shape.to(device) # Added .to(device)
         max_action = env.action_space.high[0]
-        max_action = max_action.to(device) # Added .to(device)
+        # max_action = max_action.to(device) # Added .to(device)
 
-        net = Net(state_shape, hidden_sizes=hidden_sizes, device=device).to(device) # Added .to(device)
-        actor = ActorProb(
+        net = Net(state_shape, hidden_sizes=hidden_sizes, device=device) # Removed .to(device)
+        actor = DataParallelNet(ActorProb(
             net, action_shape, max_action=max_action, unbounded=unbounded, device=device
-        ).to(device)
+        ).to(device))
         critic = [
-            Critic(
+            DataParallelNet(Critic(
                 Net(state_shape, hidden_sizes=hidden_sizes, device=device),
                 device=device
-            ).to(device) for _ in range(2)
+            ).to(device)) for _ in range(2)
         ]
 
         torch.nn.init.constant_(actor.sigma_param, -0.5)
