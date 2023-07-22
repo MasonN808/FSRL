@@ -107,10 +107,13 @@ class CPOAgent(OnpolicyAgent):
 
         # model
         state_shape = env.observation_space.shape or env.observation_space.n
+        state_shape = state_shape.to(device) # Added .to(device)
         action_shape = env.action_space.shape or env.action_space.n
+        action_shape = action_shape.to(device) # Added .to(device)
         max_action = env.action_space.high[0]
+        max_action = max_action.to(device) # Added .to(device)
 
-        net = Net(state_shape, hidden_sizes=hidden_sizes, device=device).to(device)
+        net = Net(state_shape, hidden_sizes=hidden_sizes, device=device).to(device) # Added .to(device)
         actor = ActorProb(
             net, action_shape, max_action=max_action, unbounded=unbounded, device=device
         ).to(device)
