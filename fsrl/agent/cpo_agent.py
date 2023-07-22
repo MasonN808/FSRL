@@ -71,7 +71,7 @@ class CPOAgent(OnpolicyAgent):
         env: gym.Env,
         logger: BaseLogger = BaseLogger(),
         cost_limit: float = 10,
-        device: str = "cuda",
+        device: str = "cpu",
         thread: int = 4,  # if use "cpu" to train
         seed: int = 10,
         lr: float = 1e-3,
