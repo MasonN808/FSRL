@@ -153,6 +153,7 @@ class CPO(BasePolicy):
             vf_loss = (ret - value).pow(2).mean()
             for param in critic.parameters():
                 vf_loss += param.pow(2).sum() * self._l2_reg
+            print(torch.is_tensor(vf_loss))
             critic_losses += vf_loss
             stats["loss/vf" + str(i)] = vf_loss.item()
         self.optim.zero_grad()
