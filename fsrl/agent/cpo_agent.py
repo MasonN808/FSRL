@@ -104,7 +104,7 @@ class CPOAgent(OnpolicyAgent):
         # set seed and computing
         seed_all(seed)
         torch.set_num_threads(thread)
-
+        print("IT WORKS SKFLDJklsdkfa;ldkjaljsd;lkfjas;ldkfj;lsjkfs")
         # model
         state_shape = env.observation_space.shape or env.observation_space.n
         state_shape = state_shape.to(device) # Added .to(device)
