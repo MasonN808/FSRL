@@ -187,7 +187,7 @@ class BasePolicy(ABC, nn.Module):
                 act = logits[0]
         else:
             act = dist.sample()
-        return Batch(logits=logits, act=act.cpu(), state=hidden, dist=dist)
+        return Batch(logits=logits, act=act, state=hidden, dist=dist)
 
     def pre_update_fn(self, **kwarg: Any) -> Any:
         """Pre-process the policy or data before updating the policy.
