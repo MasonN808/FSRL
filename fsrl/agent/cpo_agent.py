@@ -71,7 +71,7 @@ class CPOAgent(OnpolicyAgent):
         env: gym.Env,
         logger: BaseLogger = BaseLogger(),
         cost_limit: float = 10,
-        device: str = "cpu",
+        device: str = "cuda",
         thread: int = 4,  # if use "cpu" to train
         seed: int = 10,
         lr: float = 1e-3,
@@ -122,7 +122,7 @@ class CPOAgent(OnpolicyAgent):
         ]
 
         torch.nn.init.constant_(actor.sigma_param, -0.5)
-        actor_critic = ActorCritic(actor, critic).to(device)
+        actor_critic = ActorCritic(actor, critic)
         # orthogonal initialization
         for m in actor_critic.modules():
             if isinstance(m, torch.nn.Linear):
