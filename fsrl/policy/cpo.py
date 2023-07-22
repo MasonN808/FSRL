@@ -145,12 +145,14 @@ class CPO(BasePolicy):
         return batch
 
     def critics_loss(self, minibatch: Batch) -> Tuple[torch.Tensor, dict]:
+        print("IT WORKS")
+        exit()
         critic_losses = torch.zeros(1)
         stats = {}
         for i, critic in enumerate(self.critics):
             value = critic(minibatch.obs).flatten()
             ret = minibatch.rets[..., i]
-            vf_loss = torch.from_numpy((ret - value).pow(2).mean())
+            vf_loss = (ret - value).pow(2).mean()
             for param in critic.parameters():
                 vf_loss += param.pow(2).sum() * self._l2_reg
             critic_losses += vf_loss
