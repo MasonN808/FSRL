@@ -1,5 +1,4 @@
 from typing import List, Optional, Tuple, Union
-
 import gymnasium as gym
 import numpy as np
 import torch
@@ -12,10 +11,11 @@ from torch.distributions import Independent, Normal
 from fsrl.agent import OnpolicyAgent
 from fsrl.policy import CPO
 from fsrl.utils import BaseLogger
-from fsrl.utils.exp_util import auto_name, seed_all
+from fsrl.utils.exp_util import auto_name, seed_all, dict_dims
 from fsrl.utils.net.common import ActorCritic
 
 from gymnasium.spaces.discrete import Discrete # Must be gymnasium, not gym for type checking
+from gymnasium.spaces.dict import Dict
 
 
 
@@ -110,10 +110,16 @@ class CPOAgent(OnpolicyAgent):
         torch.set_num_threads(thread)
 
         # model
+        if isinstance(env.observation_space, Dict):
+            state_shape = env.observation_space.shape or dict_dims(env.observation_space)
+        else:
+            state_shape = env.observation_space.shape or env.observation_space.n
+        # state_shape = env.observation_space.shape or env.observation_space.n
+        action_shape = env.action_space.shape or env.action_space.n
         print("Observation Space: {}".format(env.observation_space))
         print("Action Space: {}".format(env.action_space))
-        state_shape = env.observation_space.shape or env.observation_space.n
-        action_shape = env.action_space.shape or env.action_space.n
+        print("State Shape: {}".format(state_shape))
+        print("Action Shape: {}".format(action_shape))
         # print(env.action_space.n)
 
         if isinstance(env.action_space, Discrete):
