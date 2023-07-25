@@ -15,6 +15,8 @@ from fsrl.utils import BaseLogger
 from fsrl.utils.exp_util import auto_name, seed_all
 from fsrl.utils.net.common import ActorCritic
 
+from gymnasium.spaces.discrete import Discrete # Must be gymnasium, not gym for type checking
+
 
 
 class CPOAgent(OnpolicyAgent):
@@ -95,7 +97,8 @@ class CPOAgent(OnpolicyAgent):
         deterministic_eval: bool = True,
         action_scaling: bool = True,
         action_bound_method: str = "clip",
-        lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None
+        lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None,
+        slurm: bool = False
     ) -> None:
         super().__init__()
 
@@ -107,23 +110,42 @@ class CPOAgent(OnpolicyAgent):
         torch.set_num_threads(thread)
 
         # model
+        print("Observation Space: {}".format(env.observation_space))
+        print("Action Space: {}".format(env.action_space))
         state_shape = env.observation_space.shape or env.observation_space.n
-        # state_shape = state_shape.to(device) # Added .to(device)
         action_shape = env.action_space.shape or env.action_space.n
-        # action_shape = action_shape.to(device) # Added .to(device)
-        max_action = env.action_space.high[0]
-        # max_action = max_action.to(device) # Added .to(device)
+        # print(env.action_space.n)
 
-        net = Net(state_shape, hidden_sizes=hidden_sizes, device=device) # Removed .to(device)
-        actor = DataParallelNet(ActorProb(
-            net, action_shape, max_action=max_action, unbounded=unbounded, device=device
-        ).to(device))
-        critic = [
-            DataParallelNet(Critic(
-                Net(state_shape, hidden_sizes=hidden_sizes, device=device),
-                device=device
-            ).to(device)) for _ in range(2)
-        ]
+        if isinstance(env.action_space, Discrete):
+            max_action = env.action_space.n
+        else:
+            # max_action = env.action_space.n
+            max_action = env.action_space.high[0]
+
+
+        net = Net(state_shape, hidden_sizes=hidden_sizes, device=device)
+
+        # W/ DataParallelNet For cuda Parallelization
+        if slurm:
+            actor = DataParallelNet(ActorProb(
+                net, action_shape, max_action=max_action, unbounded=unbounded, device=device
+            ).to(device))
+            critic = [
+                DataParallelNet(Critic(
+                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
+                    device=device
+                ).to(device)) for _ in range(2)
+            ]
+        else:
+            actor = ActorProb(
+                net, action_shape, max_action=max_action, unbounded=unbounded, device=device
+            ).to(device)
+            critic = [
+                Critic(
+                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
+                    device=device
+                ).to(device) for _ in range(2)
+            ]
 
         torch.nn.init.constant_(actor.sigma_param, -0.5)
         actor_critic = ActorCritic(actor, critic)
