@@ -167,3 +167,10 @@ def auto_name(
     name = "default" if not len(name) else name
     name = f"{name}-{str(uuid.uuid4())[:4]}"
     return name
+
+def dict_dims(mydict):
+    d1 = len(mydict)
+    d2 = 0
+    for d in mydict:
+        d2 = max(d2, len(d))
+    return d1, d2
