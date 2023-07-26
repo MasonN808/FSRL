@@ -143,6 +143,7 @@ class CPOAgent(OnpolicyAgent):
         #         ).to(device)) for _ in range(2)
         #     ]
         # else:
+        
         actor = ActorProb(
             net, action_shape, max_action=max_action, unbounded=unbounded, device=device
         ).to(device)
