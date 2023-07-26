@@ -136,13 +136,12 @@ class CPOAgent(OnpolicyAgent):
             actor = DataParallelNet(
                 ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, device=None).to(device)
             )
-            # critic = [
-            #     DataParallelNet(Critic(
-            #         Net(state_shape, hidden_sizes=hidden_sizes, device=None),
-            #         device=None
-            #     ).to(device)) for _ in range(2)
-            # ]
-            critic = DataParallelNet(Critic(net, device=None).to(device))
+            critic = [
+                DataParallelNet(Critic(
+                    Net(state_shape, hidden_sizes=hidden_sizes, device=None),
+                    device=None
+                ).to(device)) for _ in range(2)
+            ]
         else:
             actor = ActorProb(
                 net, action_shape, max_action=max_action, unbounded=unbounded, device=device
