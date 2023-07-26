@@ -132,15 +132,20 @@ class CPOAgent(OnpolicyAgent):
         net = Net(state_shape, hidden_sizes=hidden_sizes, device=device)
         # W/ DataParallelNet For cuda Parallelization
         if torch.cuda.is_available():
+            # actor = DataParallelNet(
+            #     ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, device=None).to(device)
+            # )
+            # critic = [
+            #     DataParallelNet(Critic(
+            #         Net(state_shape, hidden_sizes=hidden_sizes, device=device),
+            #         device=None
+            #     ).to(device)) for _ in range(2)
+            # ]
+
             actor = DataParallelNet(
                 ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, device=None).to(device)
             )
-            critic = [
-                DataParallelNet(Critic(
-                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
-                    device=None
-                ).to(device)) for _ in range(2)
-            ]
+            critic = DataParallelNet(Critic(net, device=None).to(device))
         else:
             actor = ActorProb(
                 net, action_shape, max_action=max_action, unbounded=unbounded, device=device
@@ -168,8 +173,8 @@ class CPOAgent(OnpolicyAgent):
                 if isinstance(m, torch.nn.Linear):
                     torch.nn.init.zeros_(m.bias)
                     m.weight.data.copy_(0.01 * m.weight.data)
-        # optim = torch.optim.Adam(actor_critic.parameters(), lr=lr)
-        optim = torch.optim.Adam(nn.ModuleList(critic).parameters(), lr=lr)
+        optim = torch.optim.Adam(actor_critic.parameters(), lr=lr)
+        # optim = torch.optim.Adam(nn.ModuleList(critic).parameters(), lr=lr)
 
         # replace DiagGuassian with Independent(Normal) which is equivalent pass *logits
         # to be consistent with policy.forward
