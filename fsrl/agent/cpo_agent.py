@@ -132,26 +132,26 @@ class CPOAgent(OnpolicyAgent):
         net = Net(state_shape, hidden_sizes=hidden_sizes, device=device)
 
         # W/ DataParallelNet For cuda Parallelization
-        if slurm:
-            actor = DataParallelNet(ActorProb(
-                net, action_shape, max_action=max_action, unbounded=unbounded, device=device
-            ).to(device))
-            critic = [
-                DataParallelNet(Critic(
-                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
-                    device=device
-                ).to(device)) for _ in range(2)
-            ]
-        else:
-            actor = ActorProb(
-                net, action_shape, max_action=max_action, unbounded=unbounded, device=device
-            ).to(device)
-            critic = [
-                Critic(
-                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
-                    device=device
-                ).to(device) for _ in range(2)
-            ]
+        # if slurm:
+        #     actor = DataParallelNet(ActorProb(
+        #         net, action_shape, max_action=max_action, unbounded=unbounded, device=device
+        #     ).to(device))
+        #     critic = [
+        #         DataParallelNet(Critic(
+        #             Net(state_shape, hidden_sizes=hidden_sizes, device=device),
+        #             device=device
+        #         ).to(device)) for _ in range(2)
+        #     ]
+        # else:
+        actor = ActorProb(
+            net, action_shape, max_action=max_action, unbounded=unbounded, device=device
+        ).to(device)
+        critic = [
+            Critic(
+                Net(state_shape, hidden_sizes=hidden_sizes, device=device),
+                device=device
+            ).to(device) for _ in range(2)
+        ]
 
         torch.nn.init.constant_(actor.sigma_param, -0.5)
         actor_critic = ActorCritic(actor, critic)
