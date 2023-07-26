@@ -116,10 +116,10 @@ class CPOAgent(OnpolicyAgent):
             state_shape = env.observation_space.shape or env.observation_space.n
         # state_shape = env.observation_space.shape or env.observation_space.n
         action_shape = env.action_space.shape or env.action_space.n
-        print("Observation Space: {}".format(env.observation_space))
-        print("Action Space: {}".format(env.action_space))
-        print("State Shape: {}".format(state_shape))
-        print("Action Shape: {}".format(action_shape))
+        # print("Observation Space: {}".format(env.observation_space))
+        # print("Action Space: {}".format(env.action_space))
+        # print("State Shape: {}".format(state_shape))
+        # print("Action Shape: {}".format(action_shape))
         # print(env.action_space.n)
 
         if isinstance(env.action_space, Discrete):
@@ -143,7 +143,7 @@ class CPOAgent(OnpolicyAgent):
         #         ).to(device)) for _ in range(2)
         #     ]
         # else:
-        
+
         actor = ActorProb(
             net, action_shape, max_action=max_action, unbounded=unbounded, device=device
         ).to(device)
