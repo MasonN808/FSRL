@@ -138,7 +138,7 @@ class CPOAgent(OnpolicyAgent):
             )
             critic = [
                 DataParallelNet(Critic(
-                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
+                    Net(state_shape, hidden_sizes=hidden_sizes, device=None),
                     device=None
                 ).to(device)) for _ in range(2)
             ]
