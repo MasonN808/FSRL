@@ -131,7 +131,7 @@ class CPOAgent(OnpolicyAgent):
         # Model
         net = Net(state_shape, hidden_sizes=hidden_sizes, device=device)
         # W/ DataParallelNet For cuda Parallelization
-        if torch.cuda.is_available() or device=="cpu":
+        if torch.cuda.is_available():
             actor = DataParallelNet(
                 ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, device=None).to(device)
             )
