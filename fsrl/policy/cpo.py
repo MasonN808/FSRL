@@ -150,10 +150,10 @@ class CPO(BasePolicy):
         for i, critic in enumerate(self.critics):
             value = critic(minibatch.obs).flatten()
             ret = minibatch.rets[..., i]
-            vf_loss = (ret - value).pow(2).mean().cuda() #TODO: FIX THIS--don't use cuda, use device
+            vf_loss = (ret - value).pow(2).mean() 
             for param in critic.parameters():
                 vf_loss += param.pow(2).sum() * self._l2_reg
-            critic_losses += vf_loss
+            critic_losses += vf_loss.cuda() #TODO: FIX THIS--don't use cuda, use device
             stats["loss/vf" + str(i)] = vf_loss.item()
         self.optim.zero_grad()
         critic_losses.backward()
