@@ -168,8 +168,8 @@ class CPOAgent(OnpolicyAgent):
                 if isinstance(m, torch.nn.Linear):
                     torch.nn.init.zeros_(m.bias)
                     m.weight.data.copy_(0.01 * m.weight.data)
-        optim = torch.optim.Adam(actor_critic.parameters(), lr=lr)
-        # optim = torch.optim.Adam(nn.ModuleList(critic).parameters(), lr=lr)
+        # optim = torch.optim.Adam(actor_critic.parameters(), lr=lr)
+        optim = torch.optim.Adam(nn.ModuleList(critic).parameters(), lr=lr)
 
         # replace DiagGuassian with Independent(Normal) which is equivalent pass *logits
         # to be consistent with policy.forward
