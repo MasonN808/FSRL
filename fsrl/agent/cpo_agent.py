@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from tianshou.env import BaseVectorEnv
-from tianshou.utils.net.common import Net, DataParallelNet
+from tianshou.utils.net.common import Net, DataParallelNet, get_dict_state_decorator
 from tianshou.utils.net.continuous import ActorProb, Critic
 from torch.distributions import Independent, Normal
 
@@ -98,7 +98,6 @@ class CPOAgent(OnpolicyAgent):
         action_scaling: bool = True,
         action_bound_method: str = "clip",
         lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None,
-        slurm: bool = False
     ) -> None:
         super().__init__()
 
@@ -109,9 +108,16 @@ class CPOAgent(OnpolicyAgent):
         seed_all(seed)
         torch.set_num_threads(thread)
 
+        # observation_shapes_dict = {}
+
         # model
         if isinstance(env.observation_space, Dict):
-            state_shape = env.observation_space.shape or dict_dims(env.observation_space)
+            # Get a dictionary with array shapes for each key
+            # for key, value in env.observation_space.items():
+            #     observation_shapes_dict.update({key:value.shape})
+            # # state_shape = env.observation_space.shape or dict_dims(env.observation_space)
+            # state_shape = get_dict_state_decorator(observation_shapes_dict, env.observation_space.keys())[1]
+            state_shape = env.observation_space.spaces["observation"].shape
         else:
             state_shape = env.observation_space.shape or env.observation_space.n
         # state_shape = env.observation_space.shape or env.observation_space.n
@@ -142,11 +148,6 @@ class CPOAgent(OnpolicyAgent):
                     device=None
                 ).to(device)) for _ in range(2)
             ]
-
-            # actor = DataParallelNet(
-            #     ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, device=None).to(device)
-            # )
-            # critic = DataParallelNet(Critic(net, device=None).to(device))
         else:
             actor = ActorProb(
                 net, action_shape, max_action=max_action, unbounded=unbounded, device=device
