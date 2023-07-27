@@ -118,6 +118,7 @@ class CPOAgent(OnpolicyAgent):
         action_shape = env.action_space.shape or env.action_space.n
         # print("Observation Space: {}".format(env.observation_space))
         # print("Action Space: {}".format(env.action_space))
+        # state_shape = (1,) + (4,)
         # print("State Shape: {}".format(state_shape))
         # print("Action Shape: {}".format(action_shape))
         # print(env.action_space.n)
