@@ -299,8 +299,8 @@ class CPO(BasePolicy):
                                       ) - scalar_r * c_value / (scalar_s + EPS)
             f_b = lambda lam: -0.5 * (scalar_q / (lam + EPS) + 2 * self._delta * lam)
             lam = lam_a if f_a(lam_a) >= f_b(lam_b) else lam_b
-            # lam = torch.tensor(lam)
-            lam = lam.clone().detach()
+            lam = torch.tensor(lam)
+            # lam = lam.clone().detach()
             nu = max(0, (lam * c_value - scalar_r).item()) / (scalar_s + EPS)
         else:
             nu = torch.sqrt(2 * self._delta / (scalar_s + EPS))
