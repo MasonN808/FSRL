@@ -146,7 +146,7 @@ class CPOAgent(OnpolicyAgent):
                 DataParallelNet(Critic(
                     Net(state_shape, hidden_sizes=hidden_sizes, device=device),
                     device=None
-                ).to(device) for _ in range(2))
+                ).to(device)) for _ in range(2)
             ]
         else:
             actor = ActorProb(
