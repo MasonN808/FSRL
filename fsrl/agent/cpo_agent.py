@@ -18,7 +18,6 @@ from gymnasium.spaces.discrete import Discrete # Must be gymnasium, not gym for 
 from gymnasium.spaces.dict import Dict
 
 
-
 class CPOAgent(OnpolicyAgent):
     """A CPO (Constrained Policy Optimization) agent.
 
@@ -108,25 +107,32 @@ class CPOAgent(OnpolicyAgent):
         seed_all(seed)
         torch.set_num_threads(thread)
 
-        # model
+        # Model
+        # Get the shapes of the states and actions to be transfered to a tensor
         if isinstance(env.observation_space, Dict):
-            state_shape = env.observation_space.spaces["observation"].shape
-        else:
+            # TODO: This is hardcoded please fix
+            dict_state_shape = {
+                "achieved_goal": (6,),
+                "observation": (6,),
+                "desired_goal": (6,)
+            }
+            decorator_fn, state_shape = get_dict_state_decorator(dict_state_shape, list(dict_state_shape.keys()))
+            global Net, ActorProb, Critic # Fixes UnboundLocalError
+            # Apply decorator to overwrite the forward pass in the Tensorflow module to allow for dict object
+            Net = decorator_fn(Net)
+            ActorProb = decorator_fn(ActorProb)
+            Critic = decorator_fn(Critic)
+        else: 
             state_shape = env.observation_space.shape or env.observation_space.n
-            
+
         action_shape = env.action_space.shape or env.action_space.n
-        # print("Observation Space: {}".format(env.observation_space))
-        # print("Action Space: {}".format(env.action_space))
-        # print("State Shape: {}".format(state_shape))
-        # print("Action Shape: {}".format(action_shape))
-        # print(env.action_space.n)
 
         if isinstance(env.action_space, Discrete):
             max_action = env.action_space.n
         else:
             # max_action = env.action_space.n
             max_action = env.action_space.high[0]
-
+       
         # Model
         net = Net(state_shape, hidden_sizes=hidden_sizes, device=device)
         # W/ DataParallelNet For cuda Parallelization
