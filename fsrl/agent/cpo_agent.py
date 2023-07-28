@@ -117,6 +117,9 @@ class CPOAgent(OnpolicyAgent):
                 "desired_goal": (6,)
             }
             decorator_fn, state_shape = get_dict_state_decorator(dict_state_shape, list(dict_state_shape.keys()))
+            print(state_shape)
+            print(decorator_fn)
+            exit()
             global Net, ActorProb, Critic # Fixes UnboundLocalError
             # Apply decorator to overwrite the forward pass in the Tensorflow module to allow for dict object
             Net = decorator_fn(Net)
