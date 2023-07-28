@@ -300,7 +300,7 @@ class CPO(BasePolicy):
             f_b = lambda lam: -0.5 * (scalar_q / (lam + EPS) + 2 * self._delta * lam)
             lam = lam_a if f_a(lam_a) >= f_b(lam_b) else lam_b
             lam = torch.tensor(lam)
-            # lam = lam.clone().detach()
+            # lam = lam.clone().detach() # FIXME: does not work on dictionary observation spaces
             nu = max(0, (lam * c_value - scalar_r).item()) / (scalar_s + EPS)
         else:
             nu = torch.sqrt(2 * self._delta / (scalar_s + EPS))
