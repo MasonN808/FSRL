@@ -189,6 +189,7 @@ class CPOAgent(OnpolicyAgent):
             optim,
             dist,  # type: ignore
             logger=logger,
+            device=device,
             # CPO specific arguments
             target_kl=target_kl,
             backtrack_coeff=backtrack_coeff,

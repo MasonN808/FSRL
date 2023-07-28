@@ -73,6 +73,7 @@ class CPO(BasePolicy):
         dist_fn: Type[torch.distributions.Distribution],
         logger: BaseLogger = BaseLogger(),
         # CPO specific arguments
+        device: str = "cpu",
         target_kl: float = 0.01,
         backtrack_coeff: float = 0.8,
         damping_coeff: float = 0.1,
@@ -108,6 +109,7 @@ class CPO(BasePolicy):
         self._delta = target_kl
         self._backtrack_coeff = backtrack_coeff
         self._damping_coeff = damping_coeff
+        self.device = device
 
     def pre_update_fn(self, stats_train: Dict, **kwarg) -> Any:
         self._ave_cost_return = stats_train["cost"]
@@ -145,7 +147,7 @@ class CPO(BasePolicy):
         return batch
 
     def critics_loss(self, minibatch: Batch) -> Tuple[torch.Tensor, dict]:
-        critic_losses = torch.zeros(1).to(device="cuda")
+        critic_losses = torch.zeros(1).to(device=self.device) # This fixed cuda incompatibility
         stats = {}
         for i, critic in enumerate(self.critics):
             value = critic(minibatch.obs).flatten()
@@ -153,7 +155,6 @@ class CPO(BasePolicy):
             vf_loss = (ret - value).pow(2).mean() 
             for param in critic.parameters():
                 vf_loss += param.pow(2).sum() * self._l2_reg
-            # critic_losses += vf_loss.cuda() #TODO: FIX THIS--don't use cuda, use device
             critic_losses += vf_loss
             stats["loss/vf" + str(i)] = vf_loss.item()
         self.optim.zero_grad()
