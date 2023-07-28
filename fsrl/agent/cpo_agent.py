@@ -108,23 +108,15 @@ class CPOAgent(OnpolicyAgent):
         seed_all(seed)
         torch.set_num_threads(thread)
 
-        # observation_shapes_dict = {}
-
         # model
         if isinstance(env.observation_space, Dict):
-            # Get a dictionary with array shapes for each key
-            # for key, value in env.observation_space.items():
-            #     observation_shapes_dict.update({key:value.shape})
-            # # state_shape = env.observation_space.shape or dict_dims(env.observation_space)
-            # state_shape = get_dict_state_decorator(observation_shapes_dict, env.observation_space.keys())[1]
             state_shape = env.observation_space.spaces["observation"].shape
         else:
             state_shape = env.observation_space.shape or env.observation_space.n
-        # state_shape = env.observation_space.shape or env.observation_space.n
+            
         action_shape = env.action_space.shape or env.action_space.n
         # print("Observation Space: {}".format(env.observation_space))
         # print("Action Space: {}".format(env.action_space))
-        # state_shape = (1,) + (4,)
         # print("State Shape: {}".format(state_shape))
         # print("Action Shape: {}".format(action_shape))
         # print(env.action_space.n)
