@@ -73,7 +73,7 @@ class BaseAgent(ABC):
             evaluation.
         """
         if state_dict is not None:
-            self.policy.load_state_dict(state_dict)
+            self.policy.load_state_dict(state_dict, strict=False)
         if train_mode:
             self.policy.train()
         else:

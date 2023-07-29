@@ -78,7 +78,8 @@ def load_config_and_model(path: str, best: bool = False):
             model_file = "model_best.pt"
         model_path = osp.join(path, "checkpoint/" + model_file)
         print(f"load model from {model_path}")
-        model = torch.load(model_path)
+        # model = torch.load(model_path)
+        model = torch.load(model_path, map_location=torch.device('cpu'))
         return config, model
     else:
         raise ValueError(f"{path} doesn't exist!")
