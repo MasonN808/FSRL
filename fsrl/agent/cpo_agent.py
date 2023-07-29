@@ -68,6 +68,11 @@ class CPOAgent(OnpolicyAgent):
 
     name = "CPOAgent"
 
+    # replace DiagGuassian with Independent(Normal) which is equivalent pass *logits
+    # to be consistent with policy.forward
+    def dist(*logits):
+        return Independent(Normal(*logits), 1)
+
     def __init__(
         self,
         env: gym.Env,
@@ -176,11 +181,6 @@ class CPOAgent(OnpolicyAgent):
                     m.weight.data.copy_(0.01 * m.weight.data)
         # optim = torch.optim.Adam(actor_critic.parameters(), lr=lr)
         optim = torch.optim.Adam(nn.ModuleList(critic).parameters(), lr=lr)
-
-        # replace DiagGuassian with Independent(Normal) which is equivalent pass *logits
-        # to be consistent with policy.forward
-        def dist(*logits):
-            return Independent(Normal(*logits), 1)
 
         self.policy = CPO(
             actor,
