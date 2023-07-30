@@ -176,9 +176,19 @@ class BasePolicy(ABC, nn.Module):
                 policy.map_action(act, batch)
         """
         logits, hidden = self.actor(batch.obs, state=state)
+        # TODO: Figure out why NaN values exist in logits
+        # Set the NaN values to a very small real
         if isinstance(logits, tuple):
+            # since tuples are immutable ...
+            logits = list(logits)
+            for index, possible_tensor in enumerate(logits):
+                if torch.is_tensor(possible_tensor):
+                    logits[index] = torch.nan_to_num(possible_tensor, nan=0.00001) 
+            logits = tuple(logits)
+            # [print(torch.isnan(i)) for i in logits if torch.is_tensor(i)]
             dist = self.dist_fn(*logits)
         else:
+            logits = torch.nan_to_num(logits, nan=0.00001) 
             dist = self.dist_fn(logits)
         if self._deterministic_eval and not self.training:
             if self.action_type == "discrete":
@@ -345,6 +355,7 @@ class BasePolicy(ABC, nn.Module):
         """
         if buffer is None:
             return {}
+        # Get a random sample from the replay buffer
         batch, indices = buffer.sample(sample_size)
         self.updating = True
         batch = self.process_fn(batch, buffer, indices)

@@ -359,7 +359,7 @@ class CPO(BasePolicy):
 
         for _ in range(repeat):
             for minibatch in batch.split(batch_size, merge_last=True):
-
+                
                 for _ in range(self._optim_critic_iters):
                     loss_vf, stats_critic = self.critics_loss(minibatch)
 
