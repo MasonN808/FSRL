@@ -196,6 +196,7 @@ class FastCollector(object):
         render: Optional[float] = None,
         no_grad: bool = True,
         gym_reset_kwargs: Optional[Dict[str, Any]] = None,
+        video_recorder: bool = None,
     ) -> Dict[str, Any]:
         """Collect a specified number of step or episode.
 
@@ -330,6 +331,8 @@ class FastCollector(object):
                 self.env.render()
                 if render > 0 and not np.isclose(render, 0):
                     time.sleep(render)
+            if video_recorder:
+                video_recorder.capture_frame()
 
             # add data into the buffer
             ptr, ep_rew, ep_len, ep_idx = self.buffer.add(
@@ -340,6 +343,10 @@ class FastCollector(object):
             step_count += len(ready_env_ids)
 
             if np.any(done):
+                # save video of first episode
+                if video_recorder:
+                    print("Saved video.")
+                    video_recorder.close()
                 env_ind_local = np.where(done)[0]
                 env_ind_global = ready_env_ids[env_ind_local]
                 episode_count += len(env_ind_local)
