@@ -139,7 +139,13 @@ class CPOAgent(OnpolicyAgent):
         # W/ DataParallelNet For cuda Parallelization
         if torch.cuda.is_available():
             actor = DataParallelNet(
-                ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, device=None).to(device)
+                ActorProb(
+                    net,
+                    action_shape,
+                    max_action=max_action,
+                    unbounded=unbounded,
+                    device=None
+                ).to(device)
             )
             critic = [
                 DataParallelNet(Critic(
@@ -158,7 +164,7 @@ class CPOAgent(OnpolicyAgent):
                 ).to(device) for _ in range(2)
             ]
 
-        # torch.nn.init.constant_(actor.sigma_param, -0.5)
+        torch.nn.init.constant_(actor.sigma_param, -0.5)
         actor_critic = ActorCritic(actor, critic)
 
         # orthogonal initialization
