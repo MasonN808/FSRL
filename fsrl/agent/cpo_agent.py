@@ -105,7 +105,8 @@ class CPOAgent(OnpolicyAgent):
 
         # set seed and computing
         seed_all(seed)
-        torch.set_num_threads(thread)
+        if not torch.cuda.is_available():
+            torch.set_num_threads(thread)
 
         # Model
         # Get the shapes of the states and actions to be transfered to a tensor
