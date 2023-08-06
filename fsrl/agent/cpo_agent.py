@@ -164,8 +164,8 @@ class CPOAgent(OnpolicyAgent):
                     device=device
                 ).to(device) for _ in range(2)
             ]
-        print(type(actor))
-        torch.nn.init.constant_(actor.super().sigma_param, -0.5)
+            
+        torch.nn.init.constant_(actor.sigma_param, -0.5)
         actor_critic = ActorCritic(actor, critic)
 
         # orthogonal initialization
