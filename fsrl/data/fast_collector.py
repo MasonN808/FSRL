@@ -197,6 +197,7 @@ class FastCollector(object):
         no_grad: bool = True,
         gym_reset_kwargs: Optional[Dict[str, Any]] = None,
         video_recorder: bool = None,
+        constraints: bool = True,
     ) -> Dict[str, Any]:
         """Collect a specified number of step or episode.
 
@@ -327,8 +328,9 @@ class FastCollector(object):
 
             cost = self.data.info.get("cost", np.zeros(rew.shape))
             total_cost += np.sum(cost)
-            total_cost_distance += np.sum(cost, axis=0)[0] # TODO make this generalizable for arbitray constraints
-            total_cost_speed += np.sum(cost, axis=0)[1]
+            if constraints: # Make this more general
+                total_cost_distance += np.sum(cost, axis=0)[0] # TODO make this generalizable for arbitray constraints
+                total_cost_speed += np.sum(cost, axis=0)[1]
             self.data.update(cost=cost)
 
             if render:
