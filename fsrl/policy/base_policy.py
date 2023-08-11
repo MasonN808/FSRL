@@ -389,12 +389,11 @@ class BasePolicy(ABC, nn.Module):
     def get_metrics(batch: Batch):
         cost = batch.info.get("cost", np.zeros(batch.rew.shape))
         cost = cost.astype(batch.rew.dtype)
-        metrics = [batch.rew, cost[:, 0], cost[:, 1]]
+        if cost[:, 0]:
+            metrics = [batch.rew, cost[:, 0], cost[:, 1]]
+        else:
+            metrics = [batch.rew, cost]
         return metrics
-        # cost = batch.info.get("cost", np.zeros(batch.rew.shape))
-        # cost = cost.astype(batch.rew.dtype)
-        # metrics = [batch.rew, cost]
-        # return metrics
 
     def compute_gae_returns(
         self,
