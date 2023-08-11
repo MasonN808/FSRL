@@ -112,7 +112,7 @@ class CPO(BasePolicy):
         self.device = device
 
     def pre_update_fn(self, stats_train: Dict, **kwarg) -> Any:
-        self._ave_cost_return = stats_train["cost"]
+        self._ave_cost_return = stats_train["avg_total_cost"]
 
     def update_cost_limit(self, cost_limit: float) -> None:
         """Update the cost limit threshold.
