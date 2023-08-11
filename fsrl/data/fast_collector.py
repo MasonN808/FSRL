@@ -243,6 +243,8 @@ class FastCollector(object):
 
         step_count = 0
         total_cost = 0
+        total_cost_distance = 0 # TODO make this generalizable for arbitray constraints
+        total_cost_speed = 0
         termination_count = 0
         truncation_count = 0
         episode_count = 0
@@ -325,6 +327,8 @@ class FastCollector(object):
 
             cost = self.data.info.get("cost", np.zeros(rew.shape))
             total_cost += np.sum(cost)
+            total_cost_distance += np.sum(cost, axis=0)[0] # TODO make this generalizable for arbitray constraints
+            total_cost_speed += np.sum(cost, axis=0)[1]
             self.data.update(cost=cost)
 
             if render:
@@ -405,13 +409,15 @@ class FastCollector(object):
 
         done_count = termination_count + truncation_count
 
-        return {
+        return { # TODO make this general for arbitrary constraints
             "n/ep": episode_count,
             "n/st": step_count,
             "rew": rew_mean,
             "len": len_mean,
             "total_cost": total_cost,
-            "cost": total_cost / episode_count,
+            "avg_total_cost": total_cost / episode_count, # TODO make this generalizable for arbitray constraints
+            "avg_cost_distance": total_cost_distance / episode_count,
+            "avg_cost_speed": total_cost_speed / episode_count,
             "truncated": truncation_count / done_count,
             "terminated": termination_count / done_count,
         }
