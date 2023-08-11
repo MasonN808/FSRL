@@ -1,7 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from typing import Any, Callable, DefaultDict, Dict, Optional, Tuple, Union
+from typing import Any, Callable, DefaultDict, Dict, Optional, Tuple, Union, List
 
 import numpy as np
 import tqdm
@@ -100,7 +100,7 @@ class BaseTrainer(ABC):
         test_collector: Optional[FastCollector] = None,
         max_epoch: int = 100,
         batch_size: int = 512,
-        cost_limit: float = np.inf,
+        cost_limit: Union[List, float] = np.inf,
         step_per_epoch: Optional[int] = None,
         repeat_per_collect: Optional[int] = None,
         update_per_step: Union[int, float] = 1,
@@ -128,7 +128,7 @@ class BaseTrainer(ABC):
         # policies are both (in)feasible, the higher reward one is better. Otherwise, the
         # feasible one is better.
         self.best_perf_rew = -np.inf
-        self.best_perf_cost = np.inf
+        self.best_perf_cost = [np.inf for _ in self.cost_limit] if isinstance(self.cost_limit, list) else np.inf
         self.start_epoch = 0
         self.env_step = 0
         self.cum_cost = 0
@@ -205,7 +205,7 @@ class BaseTrainer(ABC):
                 self.policy_update_fn(stats_train)
 
                 t.set_postfix(
-                    cost=stats_train["cost"],
+                    cost=stats_train["avg_total_cost"],
                     rew=stats_train["rew"],
                     length=stats_train["len"]
                 )
@@ -248,7 +248,10 @@ class BaseTrainer(ABC):
         # use the testing or the training metric to determine the best
         mode = "test" if test and self.test_collector is not None else "train"
         rew = self.logger.get_mean(mode + "/reward")
-        cost = self.logger.get_mean(mode + "/cost")
+        # cost = self.logger.get_mean(mode + "/cost")
+        cost_distance = self.logger.get_mean(mode + "/cost_distance") # TODO make this generalizable for arbitray constraints
+        cost_speed = self.logger.get_mean(mode + "/cost_speed")
+        cost = [cost_distance, cost_speed]
         if self.best_perf_cost > self.cost_limit:
             if cost <= self.cost_limit or rew > self.best_perf_rew:
                 self.best_perf_cost = cost
@@ -273,7 +276,9 @@ class BaseTrainer(ABC):
         self.logger.store(
             **{
                 "test/reward": stats_test["rew"],
-                "test/cost": stats_test["cost"],
+                "test/cost": stats_test["avg_total_cost"], # average per episode # TODO make this generalizable for arbitray constraints
+                "test/cost_distance": stats_test["avg_cost_distance"], # average per episode
+                "test/cost_speed": stats_test["avg_cost_speed"], # average per episode
                 "test/length": int(stats_test["len"]),
             }
         )
@@ -283,16 +288,17 @@ class BaseTrainer(ABC):
         """Perform one training step."""
         assert self.episode_per_test is not None
         stats_train = self.train_collector.collect(self.episode_per_collect)
-
         self.env_step += int(stats_train["n/st"])
         self.cum_cost += stats_train["total_cost"]
         self.cum_episode += int(stats_train["n/ep"])
-        self.logger.store(
+        self.logger.store( # TODO Make this more general for arbitrary costs
             **{
                 "update/episode": self.cum_episode,
                 "update/cum_cost": self.cum_cost,
                 "train/reward": stats_train["rew"],
-                "train/cost": stats_train["cost"],
+                "train/cost": stats_train["avg_total_cost"], # average per episode
+                "train/cost_distance": stats_train["avg_cost_distance"], # average per episode
+                "train/cost_speed": stats_train["avg_cost_speed"], # average per episode
                 "train/length": int(stats_train["len"]),
             }
         )
