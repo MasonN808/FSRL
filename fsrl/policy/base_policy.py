@@ -389,7 +389,7 @@ class BasePolicy(ABC, nn.Module):
     def get_metrics(batch: Batch):
         cost = batch.info.get("cost", np.zeros(batch.rew.shape))
         cost = cost.astype(batch.rew.dtype)
-        if cost[:, 0]:
+        if cost.ndim == 2:
             metrics = [batch.rew, cost[:, 0], cost[:, 1]]
         else:
             metrics = [batch.rew, cost]
