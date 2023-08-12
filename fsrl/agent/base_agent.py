@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
+import random
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import gymnasium as gym
@@ -9,6 +11,11 @@ from fsrl.data import FastCollector
 from fsrl.policy import BasePolicy
 from fsrl.trainer import OffpolicyTrainer, OnpolicyTrainer
 from fsrl.utils import BaseLogger
+# For video monitoring the environment
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
+
+from fsrl.utils.exp_util import load_environment, mp4_to_gif
+
 
 
 class BaseAgent(ABC):
@@ -52,11 +59,17 @@ class BaseAgent(ABC):
 
     def evaluate(
         self,
-        test_envs: Union[gym.Env, BaseVectorEnv],
+        env_config: Dict,
         state_dict: Optional[dict] = None,
         eval_episodes: int = 10,
         render: bool = False,
-        train_mode: bool = False
+        render_mode: str = "rgb_array",
+        train_mode: bool = False,
+        experiment_id: str = "----",
+        constraints: bool = True,
+        random_starting_locations: list[list[float]] = [[0,0]],
+        algorithm: str = "None",
+        convert_to_gif: bool = False,
     ) -> Tuple[float, float, float]:
         """Evaluate the policy on a set of test environments.
 
@@ -79,12 +92,30 @@ class BaseAgent(ABC):
         else:
             self.policy.eval()
 
-        eval_collector = FastCollector(self.policy, test_envs)
-        result = eval_collector.collect(n_episode=eval_episodes, render=render)
-        rews, lens, cost = result["rew"], result["len"], result["cost"]
-        # term, trun = result["terminated"], result["truncated"] print(f"Termination:
-        # {term}, truncation: {trun}") print(f"Eval reward: {rews.mean()}, cost: {cost},
-        # length: {lens.mean()}")
+        video_index = 0
+        for _ in range(0, eval_episodes):
+            env_config.update({"start_location": random.choice(random_starting_locations)})
+            test_env = load_environment(env_config, render_mode=render_mode)
+            # Check if the file name exists
+            # If not, loop through the indices until you reach an available index
+            name = f"./videos/{algorithm}/mp4s/{algorithm}-{experiment_id}-{video_index}.mp4"
+            filename = Path(name)
+            while filename.exists():
+                video_index += 1
+                name = f"./videos/{algorithm}/mp4s/{algorithm}-{experiment_id}-{video_index}.mp4"
+                filename = Path(name)
+            video_recorder = VideoRecorder(test_env, name)
+            # Collector
+            eval_collector = FastCollector(self.policy, test_env, constraints=constraints)
+            result = eval_collector.collect(n_episode=1, render=render, video_recorder=video_recorder, constraints=False)
+
+            # Optionally turn the mp4 into a gif immediately
+            if convert_to_gif:
+                mp4_to_gif(mp4_path=f"./videos/{algorithm}/mp4s/{algorithm}-{experiment_id}-{video_index}.mp4",
+                           gif_path=f"./videos/{algorithm}/gifs/{algorithm}-{experiment_id}-{video_index}.gif")
+
+            rews, lens, cost = result["rew"], result["len"], result["avg_total_cost"]
+            print(f'rews: {rews}', f'lens: {lens}', f'cost: {cost}')
         return rews, lens, cost
 
     @property
