@@ -1,10 +1,15 @@
 # flake8: noqa
 
+import json
 import os
 import os.path as osp
 import random
 import uuid
 from typing import Dict, List, Optional, Sequence
+import gymnasium as gym
+import logging
+from moviepy.editor import VideoFileClip
+logger = logging.getLogger(__name__)
 
 import numpy as np
 import torch
@@ -175,3 +180,47 @@ def dict_dims(mydict):
     for d in mydict:
         d2 = max(d2, len(d))
     return d1, d2
+
+
+# From https://github.com/eleurent/rl-agents/blob/master/rl_agents/agents/common/factory.py
+def load_environment(env_config, render_mode=None):
+    """
+        Load an environment from a configuration file.
+
+    :param env_config: the configuration, or path to the environment configuration file
+    :return: the environment
+    """
+    # Load the environment config from file
+    if not isinstance(env_config, dict):
+        with open(env_config) as f:
+            env_config = json.loads(f.read())
+
+    # Make the environment
+    if env_config.get("import_module", None):
+        __import__(env_config["import_module"])
+    try:
+        env = gym.make(env_config['id'], render_mode=render_mode)
+        # Save env module in order to be able to import it again
+        env.import_module = env_config.get("import_module", None)
+    except KeyError:
+        raise ValueError("The gym register-id of the environment must be provided")
+    except gym.error.UnregisteredEnv:
+        # The environment is unregistered.
+        print("import_module", env_config["import_module"])
+        raise gym.error.UnregisteredEnv('Environment {} not registered. The environment module should be specified by '
+                                        'the "import_module" key of the environment configuration'.format(
+                                            env_config['id']))
+
+    # Configure the environment, if supported
+    try:
+        env.unwrapped.configure(env_config)
+        # Reset the environment to ensure configuration is applied
+        env.reset()
+    except AttributeError as e:
+        logger.info("This environment does not support configuration. {}".format(e))
+    return env
+
+def mp4_to_gif(mp4_path: str, gif_path: str):
+    videoClip = VideoFileClip(mp4_path)
+    videoClip.write_gif(gif_path, fps=60, opt="OptimizePlus", fuzz=10)
+
