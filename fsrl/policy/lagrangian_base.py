@@ -96,7 +96,7 @@ class LagrangianPolicy(BasePolicy):
             self.lag_optims = []
 
     def pre_update_fn(self, stats_train: Dict, **kwarg) -> None:
-        cost_values = stats_train["cost"]
+        cost_values = stats_train["avg_total_cost"]
         self.update_lagrangian(cost_values)
 
     def update_cost_limit(self, cost_limit: float) -> None:
