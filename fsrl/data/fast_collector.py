@@ -244,7 +244,7 @@ class FastCollector(object):
 
         start_time = time.time()
 
-        self.constraints = constraints
+        # self.constraints = constraints
         step_count = 0
         total_cost = 0
         total_cost_distance = 0 # TODO make this generalizable for arbitray constraints
