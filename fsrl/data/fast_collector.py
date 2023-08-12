@@ -51,6 +51,7 @@ class FastCollector(object):
         buffer: Optional[ReplayBuffer] = None,
         preprocess_fn: Optional[Callable[..., Batch]] = None,
         exploration_noise: bool = False,
+        constraints: bool = True,
     ) -> None:
         super().__init__()
         if isinstance(env, gym.Env) and not hasattr(env, "__len__"):
@@ -66,6 +67,7 @@ class FastCollector(object):
         self._action_space = self.env.action_space
         # avoid creating attribute outside __init__
         self.reset(False)
+        self.constraints = constraints # This is to seperate PPO and CPO when logging constraints
 
     def _assign_buffer(self, buffer: Optional[ReplayBuffer]) -> None:
         """Check if the buffer matches the constraint."""
@@ -242,6 +244,7 @@ class FastCollector(object):
 
         start_time = time.time()
 
+        self.constraints = constraints
         step_count = 0
         total_cost = 0
         total_cost_distance = 0 # TODO make this generalizable for arbitray constraints
@@ -328,7 +331,7 @@ class FastCollector(object):
 
             cost = self.data.info.get("cost", np.zeros(rew.shape))
             total_cost += np.sum(cost)
-            if constraints: # Make this more general
+            if self.constraints: # Make this more general
                 total_cost_distance += np.sum(cost, axis=0)[0] # TODO make this generalizable for arbitray constraints
                 total_cost_speed += np.sum(cost, axis=0)[1]
             self.data.update(cost=cost)
