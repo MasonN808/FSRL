@@ -251,7 +251,11 @@ class BaseTrainer(ABC):
         # cost = self.logger.get_mean(mode + "/cost")
         cost_distance = self.logger.get_mean(mode + "/cost_distance") # TODO make this generalizable for arbitray constraints
         cost_speed = self.logger.get_mean(mode + "/cost_speed")
-        cost = [cost_distance, cost_speed]
+        # TODO CHANGE this if statement ASAP for general constraints and general cost_limits
+        if isinstance(self.cost_limit, int) or isinstance(self.cost_limit, float):
+            cost = cost[0]
+        else:
+            cost = [cost_distance, cost_speed] 
         if self.best_perf_cost > self.cost_limit:
             if cost <= self.cost_limit or rew > self.best_perf_rew:
                 self.best_perf_cost = cost
