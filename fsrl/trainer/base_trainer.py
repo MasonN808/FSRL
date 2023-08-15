@@ -101,6 +101,7 @@ class BaseTrainer(ABC):
         max_epoch: int = 100,
         batch_size: int = 512,
         cost_limit: Union[List, float] = np.inf,
+        constraint_type: list[str] = [],
         step_per_epoch: Optional[int] = None,
         repeat_per_collect: Optional[int] = None,
         update_per_step: Union[int, float] = 1,
@@ -119,6 +120,8 @@ class BaseTrainer(ABC):
         self.test_collector = test_collector
         self.logger = logger
         self.cost_limit = cost_limit
+        self.constraint_type = constraint_type
+        self.max_implemented_constraints = 2 # Speed and distance
 
         self.start_time = time.time()
 
@@ -248,13 +251,20 @@ class BaseTrainer(ABC):
         # use the testing or the training metric to determine the best
         mode = "test" if test and self.test_collector is not None else "train"
         rew = self.logger.get_mean(mode + "/reward")
+
         # cost = self.logger.get_mean(mode + "/cost")
-        cost_distance = self.logger.get_mean(mode + "/cost_distance") # TODO make this generalizable for arbitray constraints
-        cost_speed = self.logger.get_mean(mode + "/cost_speed")
-        # TODO CHANGE this if statement ASAP for general constraints and general cost_limits
-        cost = [cost_distance, cost_speed] 
-        if isinstance(self.cost_limit, int) or isinstance(self.cost_limit, float):
-            cost = cost[0]
+        cost = []
+        for constraint_type in self.constraint_type:
+            if constraint_type == "speed":
+                cost_speed = self.logger.get_mean(mode + "/cost_speed")
+                cost.append(cost_speed)
+            if constraint_type == "distance":
+                cost_distance = self.logger.get_mean(mode + "/cost_distance")
+                cost.append(cost_distance)
+            # TODO Add more constraints here
+        # Make sure the number of costs equal the cost limits
+        assert len(cost) == len(self.cost_limit), "the number of costs and cost limits should be equal"
+
         if self.best_perf_cost > self.cost_limit:
             if cost <= self.cost_limit or rew > self.best_perf_rew:
                 self.best_perf_cost = cost

@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -57,7 +57,8 @@ class OnpolicyTrainer(BaseTrainer):
         test_collector: Optional[FastCollector] = None,
         max_epoch: int = 10000,
         batch_size: int = 512,
-        cost_limit: float = np.inf,
+        cost_limit: Union[List, float] = np.inf,
+        constraint_type: list[str] = [],
         step_per_epoch: int = 10000,
         repeat_per_collect: int = 4,
         episode_per_collect: int = 10,
@@ -76,6 +77,7 @@ class OnpolicyTrainer(BaseTrainer):
             batch_size=batch_size,
             train_collector=train_collector,
             cost_limit=cost_limit,
+            constraint_type=constraint_type,
             test_collector=test_collector,
             step_per_epoch=step_per_epoch,
             repeat_per_collect=repeat_per_collect,

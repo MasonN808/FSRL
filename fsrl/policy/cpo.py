@@ -257,6 +257,9 @@ class CPO(BasePolicy):
         H_inv_g = self._conjugate_gradients(grad_g, flat_kl_grad)
         approx_g = self._MVP(H_inv_g, flat_kl_grad)
         c_value = cost_surrogate - self._cost_limit
+        # print(c_value)
+        # print(cost_surrogate)
+        # print(self._cost_limit)
 
         # solve Lagrangian problem
         EPS = 1e-8
