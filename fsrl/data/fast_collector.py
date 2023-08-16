@@ -52,6 +52,7 @@ class FastCollector(object):
         preprocess_fn: Optional[Callable[..., Batch]] = None,
         exploration_noise: bool = False,
         constraints: bool = True,
+        constraint_type: list[str] = []
     ) -> None:
         super().__init__()
         if isinstance(env, gym.Env) and not hasattr(env, "__len__"):
@@ -68,6 +69,7 @@ class FastCollector(object):
         # avoid creating attribute outside __init__
         self.reset(False)
         self.constraints = constraints # This is to seperate PPO and CPO when logging constraints
+        self.constraint_type = constraint_type
 
     def _assign_buffer(self, buffer: Optional[ReplayBuffer]) -> None:
         """Check if the buffer matches the constraint."""
@@ -199,7 +201,6 @@ class FastCollector(object):
         no_grad: bool = True,
         gym_reset_kwargs: Optional[Dict[str, Any]] = None,
         video_recorder: bool = None,
-        constraints: bool = True,
     ) -> Dict[str, Any]:
         """Collect a specified number of step or episode.
 
@@ -247,8 +248,10 @@ class FastCollector(object):
         # self.constraints = constraints
         step_count = 0
         total_cost = 0
-        total_cost_distance = 0 # TODO make this generalizable for arbitray constraints
-        total_cost_speed = 0
+        if "distance" in self.constraint_type:
+            total_cost_distance = 0
+        if "speed" in self.constraint_type:
+            total_cost_speed = 0
         termination_count = 0
         truncation_count = 0
         episode_count = 0
@@ -331,9 +334,14 @@ class FastCollector(object):
 
             cost = self.data.info.get("cost", np.zeros(rew.shape))
             total_cost += np.sum(cost)
-            if self.constraints: # Make this more general
-                total_cost_distance += np.sum(cost, axis=0)[0] # TODO make this generalizable for arbitray constraints
-                total_cost_speed += np.sum(cost, axis=0)[1]
+            traversed = [False]*len(self.constraint_type)
+            # Append the costs in the order recevived in constraint_type
+            for i in range(len(self.constraint_type)):
+                if self.constraint_type[i]=="distance" and not traversed[i]:
+                    total_cost_distance += np.sum(cost, axis=0)[i]
+                elif self.constraint_type[i]=="speed" and not traversed[i]:
+                    total_cost_speed += np.sum(cost, axis=0)[i]
+                traversed[i] = True
             self.data.update(cost=cost)
 
             if render:
@@ -414,15 +422,21 @@ class FastCollector(object):
 
         done_count = termination_count + truncation_count
 
-        return { # TODO make this general for arbitrary constraints
+        dict_out = {
             "n/ep": episode_count,
             "n/st": step_count,
             "rew": rew_mean,
             "len": len_mean,
             "total_cost": total_cost,
             "avg_total_cost": total_cost / episode_count, # TODO make this generalizable for arbitray constraints
-            "avg_cost_distance": total_cost_distance / episode_count,
-            "avg_cost_speed": total_cost_speed / episode_count,
             "truncated": truncation_count / done_count,
             "terminated": termination_count / done_count,
         }
+
+        # Append the costs if they exist
+        if "distance" in self.constraint_type:
+            dict_out["avg_cost_distance"] = total_cost_distance / episode_count
+        if "speed" in self.constraint_type:
+            dict_out["avg_cost_speed"] = total_cost_speed / episode_count
+
+        return dict_out

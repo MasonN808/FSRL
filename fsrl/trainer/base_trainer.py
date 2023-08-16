@@ -252,18 +252,17 @@ class BaseTrainer(ABC):
         mode = "test" if test and self.test_collector is not None else "train"
         rew = self.logger.get_mean(mode + "/reward")
 
-        # cost = self.logger.get_mean(mode + "/cost")
         cost = []
         for constraint_type in self.constraint_type:
-            if constraint_type == "speed":
-                cost_speed = self.logger.get_mean(mode + "/cost_speed")
-                cost.append(cost_speed)
             if constraint_type == "distance":
                 cost_distance = self.logger.get_mean(mode + "/cost_distance")
                 cost.append(cost_distance)
+            if constraint_type == "speed":
+                cost_speed = self.logger.get_mean(mode + "/cost_speed")
+                cost.append(cost_speed)
             # TODO Add more constraints here
         # Make sure the number of costs equal the cost limits
-        assert len(cost) == len(self.cost_limit), "the number of costs and cost limits should be equal"
+        assert len(cost) == len(self.cost_limit), f"the number of cost len {cost} and cost limits len {self.cost_limit} should be equal"
 
         if self.best_perf_cost > self.cost_limit:
             if cost <= self.cost_limit or rew > self.best_perf_rew:
@@ -285,16 +284,21 @@ class BaseTrainer(ABC):
         self.test_collector.reset_buffer()
         self.policy.eval()
         stats_test = self.test_collector.collect(n_episode=self.episode_per_test)
-
-        self.logger.store(
-            **{
+        info_dict = {
+                "update/episode": self.cum_episode,
+                "update/cum_cost": self.cum_cost,
                 "test/reward": stats_test["rew"],
-                "test/cost": stats_test["avg_total_cost"], # average per episode # TODO make this generalizable for arbitray constraints
-                "test/cost_distance": stats_test["avg_cost_distance"], # average per episode
-                "test/cost_speed": stats_test["avg_cost_speed"], # average per episode
+                "test/cost": stats_test["avg_total_cost"], # average per episode
                 "test/length": int(stats_test["len"]),
-            }
-        )
+        }
+        # Check for different constraints
+        if "distance" in self.constraint_type:
+            info_dict["test/cost_distance"] = stats_test["avg_cost_distance"]
+        if "speed" in self.constraint_type:
+            info_dict["test/cost_speed"] = stats_test["avg_cost_speed"]
+        # TODO add more constraints here
+        
+        self.logger.store(**info_dict)
         return stats_test
 
     def train_step(self) -> Dict[str, Any]:
@@ -304,17 +308,21 @@ class BaseTrainer(ABC):
         self.env_step += int(stats_train["n/st"])
         self.cum_cost += stats_train["total_cost"]
         self.cum_episode += int(stats_train["n/ep"])
-        self.logger.store( # TODO Make this more general for arbitrary costs
-            **{
+        info_dict = {
                 "update/episode": self.cum_episode,
                 "update/cum_cost": self.cum_cost,
                 "train/reward": stats_train["rew"],
                 "train/cost": stats_train["avg_total_cost"], # average per episode
-                "train/cost_distance": stats_train["avg_cost_distance"], # average per episode
-                "train/cost_speed": stats_train["avg_cost_speed"], # average per episode
                 "train/length": int(stats_train["len"]),
-            }
-        )
+        }
+        # Check for different constraints
+        if "distance" in self.constraint_type:
+            info_dict["train/cost_distance"] = stats_train["avg_cost_distance"]
+        if "speed" in self.constraint_type:
+            info_dict["train/cost_speed"] = stats_train["avg_cost_speed"]
+        # TODO add more constraints here
+        
+        self.logger.store(**info_dict)
         return stats_train
 
     @abstractmethod

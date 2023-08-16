@@ -200,9 +200,10 @@ class CVPO(BasePolicy):
         batch = buffer[indices]  # batch.obs_next: s_{t+n}
         obs_next_result = self(batch, model="actor", input='obs_next')
         act = obs_next_result.act
+        # print(batch)
         target_q_list = []
         for i in range(self.critics_num):
-            target_q, _ = self.critics_old[i].predict(batch.obs_next, act)
+            target_q, _ = self.critics_old[i].predict(batch.obs_next["observation"], act) # NOTE Added ["observation"] key
             target_q_list.append(target_q)
         return target_q_list
 
@@ -223,7 +224,7 @@ class CVPO(BasePolicy):
         **kwargs: Any,
     ) -> Batch:
         model = getattr(self, model)
-        obs = batch[input]
+        obs = batch[input]["observation"] # NOTE Added ["observation"] key
         logits, hidden = model(obs, state=state)
         if isinstance(logits, tuple):
             dist = self.dist_fn(*logits)
@@ -249,7 +250,7 @@ class CVPO(BasePolicy):
         for i in range(self.critics_num):
             target_q = batch.rets[..., i].flatten()
             # double q network
-            current_q_list = critics[i](batch.obs, batch.act)
+            current_q_list = critics[i](batch.obs["observation"], batch.act) # NOTE Added ["observation"] key
             loss_i = 0
             for j in range(len(current_q_list)):
                 td = current_q_list[j].flatten() - target_q
@@ -313,14 +314,16 @@ class CVPO(BasePolicy):
 
         # E-step begin
         t_start = time.time()
-        obs = torch.as_tensor(
-            batch.obs, device=self.device, dtype=torch.float32
+        obs = torch.as_tensor( # TODO Make sure this has to be the true observation
+            batch.obs["observation"].tolist(), device=self.device, dtype=torch.float32 # NOTE Added ["observation"] key
         )  # (B, ds)
         # for continuous action space, sample K particles
         K = self._sample_act_num
         B = obs.shape[0]
         da = batch.act.shape[-1]
         ds = obs.shape[-1]
+        # print(obs.shape)
+        # print(B, ds, K, da)
         with torch.no_grad():
             old_result = self(batch, model="actor_old", input="obs")
             old_dist = old_result.dist  # (B, da)
