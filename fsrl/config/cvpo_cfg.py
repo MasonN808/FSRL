@@ -1,12 +1,13 @@
-from dataclasses import dataclass
-from typing import Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Optional, Tuple, List, Union
 
 
 @dataclass
 class TrainCfg:
     # general task params
     task: str = "SafetyCarCircle-v0"
-    cost_limit: float = 10
+    cost_limit: Union[List, float] = field(default_factory=lambda: [5.0, 5.0])
+    constraint_type: list[str] = field(default_factory=lambda: ["distance", "speed"])
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train
     seed: int = 10
