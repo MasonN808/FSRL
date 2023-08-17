@@ -95,7 +95,8 @@ class BasePolicy(ABC, nn.Module):
         observation_space: Optional[gym.Space] = None,
         action_space: Optional[gym.Space] = None,
         lr_scheduler: Optional[Union[torch.optim.lr_scheduler.LambdaLR,
-                                     MultipleLRSchedulers]] = None
+                                     MultipleLRSchedulers]] = None,
+        constraint_type: list[str] = [],
     ) -> None:
         super().__init__()
         self.actor = actor
@@ -135,6 +136,7 @@ class BasePolicy(ABC, nn.Module):
         self.action_bound_method = action_bound_method
         self.lr_scheduler = lr_scheduler
         self.gradient_steps = 0
+        self.constraint_type = constraint_type
         self._compile()
 
     def forward(
@@ -176,7 +178,6 @@ class BasePolicy(ABC, nn.Module):
                 policy.map_action(act, batch)
         """
         logits, hidden = self.actor(batch.obs, state=state)
-        # TODO: Figure out why NaN values exist in logits
         # Set the NaN values to a very small real
         if isinstance(logits, tuple):
             # since tuples are immutable ...
@@ -185,7 +186,6 @@ class BasePolicy(ABC, nn.Module):
                 if torch.is_tensor(possible_tensor):
                     logits[index] = torch.nan_to_num(possible_tensor, nan=0.00001) 
             logits = tuple(logits)
-            # [print(torch.isnan(i)) for i in logits if torch.is_tensor(i)]
             dist = self.dist_fn(*logits)
         else:
             logits = torch.nan_to_num(logits, nan=0.00001) 
@@ -385,9 +385,8 @@ class BasePolicy(ABC, nn.Module):
         """
         return ~buffer.terminated[indices]
 
-    @staticmethod
-    def get_metrics(batch: Batch):
-        cost = batch.info.get("cost", np.zeros(batch.rew.shape))
+    def get_metrics(self, batch: Batch):
+        cost = batch.info.get("cost", np.zeros((len(batch.rew), len(self.constraint_type)))).cost
         cost = cost.astype(batch.rew.dtype)
         if cost.ndim == 2:
             metrics = [batch.rew, cost[:, 0], cost[:, 1]]
