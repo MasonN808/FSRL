@@ -1,6 +1,6 @@
 import time
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import gymnasium as gym
 import numpy as np
@@ -99,7 +99,8 @@ class CVPO(BasePolicy):
         deterministic_eval: bool = True,
         action_scaling: bool = True,
         action_bound_method: str = "clip",
-        lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None
+        lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None,
+        constraint_type: list[str] = []
     ) -> None:
         super().__init__(
             actor=actor,
@@ -111,7 +112,8 @@ class CVPO(BasePolicy):
             action_scaling=action_scaling,
             action_bound_method=action_bound_method,
             action_space=action_space,
-            lr_scheduler=lr_scheduler
+            lr_scheduler=lr_scheduler,
+            constraint_type=constraint_type
         )
 
         self.actor_old = deepcopy(self.actor)
@@ -203,7 +205,8 @@ class CVPO(BasePolicy):
         # print(batch)
         target_q_list = []
         for i in range(self.critics_num):
-            target_q, _ = self.critics_old[i].predict(batch.obs_next["observation"], act) # NOTE Added ["observation"] key
+            # flattened_obs = [list(o) + list(d) + list(a) for o, d, a in zip(batch.obs['observation'], batch.obs['desired_goal'], batch.obs_next['achieved_goal'])]
+            target_q, _ = self.critics_old[i].predict(batch.obs, act) # NOTE added self.preprocess_obs
             target_q_list.append(target_q)
         return target_q_list
 
@@ -224,7 +227,11 @@ class CVPO(BasePolicy):
         **kwargs: Any,
     ) -> Batch:
         model = getattr(self, model)
-        obs = batch[input]["observation"] # NOTE Added ["observation"] key
+        # flattened_obs = [list(o) + list(d) + list(a) for o, d, a in zip(batch.obs['observation'], batch.obs['desired_goal'], batch.obs['achieved_goal'])]
+        # obs = self.preprocess_obs(batch[input]) # NOTE added self.preprocess_obs
+        obs = batch[input] # NOTE added self.preprocess_obs
+        # print(obs)
+        # exit()
         logits, hidden = model(obs, state=state)
         if isinstance(logits, tuple):
             dist = self.dist_fn(*logits)
@@ -250,7 +257,8 @@ class CVPO(BasePolicy):
         for i in range(self.critics_num):
             target_q = batch.rets[..., i].flatten()
             # double q network
-            current_q_list = critics[i](batch.obs["observation"], batch.act) # NOTE Added ["observation"] key
+            # flattened_obs = [list(o) + list(d) + list(a) for o, d, a in zip(batch.obs['observation'], batch.obs['desired_goal'], batch.obs['achieved_goal'])]
+            current_q_list = critics[i](batch.obs, batch.act) # NOTE added self.preprocess_obs
             loss_i = 0
             for j in range(len(current_q_list)):
                 td = current_q_list[j].flatten() - target_q
@@ -314,9 +322,12 @@ class CVPO(BasePolicy):
 
         # E-step begin
         t_start = time.time()
-        obs = torch.as_tensor( # TODO Make sure this has to be the true observation
-            batch.obs["observation"].tolist(), device=self.device, dtype=torch.float32 # NOTE Added ["observation"] key
-        )  # (B, ds)
+        # This takes the dictionary style observation from the HighwayEnv KinematicsGoal observation type and flattens it for the MLP input
+        # flattened_obs = [list(o) + list(d) + list(a) for o, d, a in zip(batch.obs['observation'], batch.obs['desired_goal'], batch.obs['achieved_goal'])]
+        # obs = torch.as_tensor(
+        #     batch.obs, device=self.device, dtype=torch.float32 
+        # )  # (B, ds)
+        obs = self.preprocess_obs(batch.obs) # NOTE added self.preprocess_obs
         # for continuous action space, sample K particles
         K = self._sample_act_num
         B = obs.shape[0]
@@ -368,7 +379,6 @@ class CVPO(BasePolicy):
         mu_old, std_old = mu_old.detach(), std_old.detach()
         for _ in range(self._mstep_iter_num):
             result = self(batch, model="actor", input="obs")
-
             # MLE loss
             mu, std = result.logits
             dist1 = self.dist_fn(mu, std_old)
@@ -391,7 +401,7 @@ class CVPO(BasePolicy):
             dual_std = np.clip(self.mstep_dual_std.item(), 0.0, self._mstep_dual_max)
             loss_kl = dual_mu * (kl_mu - self._mstep_kl_mu
                                  ) + dual_std * (kl_std - self._mstep_kl_std)
-
+            
             loss_actor = loss_mle + loss_kl
 
             # optimize the policy network
@@ -440,3 +450,20 @@ class CVPO(BasePolicy):
         This function is called from load_state_dict() to handle any extra state found
         within the state_dict.
         """
+
+    # From Tianshou get_dict_state_decorator()
+    def preprocess_obs(self, obs: Union[Batch, dict, torch.Tensor, np.ndarray]) -> torch.Tensor:
+        keys = list(obs.keys())
+        if isinstance(obs, dict) or (isinstance(obs, Batch) and keys[0] in obs):
+            # if np.asarray(obs[keys[0]]).shape == obs[keys[0]].shape:
+            #     # No batch dim
+            #     new_obs = torch.Tensor([obs[k] for k in keys], device=self.device).flatten()
+            #     # new_obs = torch.Tensor([obs[k] for k in keys]).reshape(1, -1)
+            # else:
+            bsz = obs[keys[0]].shape[0]
+            new_obs = torch.cat(
+                [torch.Tensor(obs[k].reshape(bsz, -1), device=self.device) for k in keys], dim=1
+            )
+        else:
+            new_obs = torch.Tensor(obs, device=self.device)
+        return new_obs

@@ -262,7 +262,7 @@ class BaseTrainer(ABC):
                 cost.append(cost_speed)
             # TODO Add more constraints here
         # Make sure the number of costs equal the cost limits
-        assert len(cost) == len(self.cost_limit), f"the number of cost len {cost} and cost limits len {self.cost_limit} should be equal"
+        assert len(cost) == len(self.cost_limit), f"the len of cost {cost} and len of cost limits {self.cost_limit} should be equal"
 
         if self.best_perf_cost > self.cost_limit:
             if cost <= self.cost_limit or rew > self.best_perf_rew:
