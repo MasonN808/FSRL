@@ -51,7 +51,6 @@ class FastCollector(object):
         buffer: Optional[ReplayBuffer] = None,
         preprocess_fn: Optional[Callable[..., Batch]] = None,
         exploration_noise: bool = False,
-        constraints: bool = True,
         constraint_type: list[str] = []
     ) -> None:
         super().__init__()
