@@ -68,7 +68,6 @@ class FastCollector(object):
         self._action_space = self.env.action_space
         # avoid creating attribute outside __init__
         self.reset(False)
-        self.constraints = constraints # This is to seperate PPO and CPO when logging constraints
         self.constraint_type = constraint_type
 
     def _assign_buffer(self, buffer: Optional[ReplayBuffer]) -> None:
@@ -245,7 +244,6 @@ class FastCollector(object):
 
         start_time = time.time()
 
-        # self.constraints = constraints
         step_count = 0
         total_cost = 0
         if "distance" in self.constraint_type:
@@ -331,8 +329,8 @@ class FastCollector(object):
                         env_id=ready_env_ids,
                     )
                 )
-
-            cost = self.data.info.get("cost", np.zeros(rew.shape))
+            # Note: same logic is in base_policy in get_metrics
+            cost = self.data.info.get("cost", np.zeros((len(rew), len(self.constraint_type)))).cost # NOTE need to use .cost since we need to extract it from a Batch object
             total_cost += np.sum(cost)
             traversed = [False]*len(self.constraint_type)
             # Append the costs in the order recevived in constraint_type
@@ -428,7 +426,7 @@ class FastCollector(object):
             "rew": rew_mean,
             "len": len_mean,
             "total_cost": total_cost,
-            "avg_total_cost": total_cost / episode_count, # TODO make this generalizable for arbitray constraints
+            "avg_total_cost": total_cost / episode_count,
             "truncated": truncation_count / done_count,
             "terminated": termination_count / done_count,
         }
