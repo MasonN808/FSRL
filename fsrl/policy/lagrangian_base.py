@@ -62,6 +62,7 @@ class LagrangianPolicy(BasePolicy):
         use_lagrangian: bool = True,
         lagrangian_pid: Tuple = (0.05, 0.0005, 0.1),
         cost_limit: Union[List, float] = np.inf,
+        constraint_type: list[str] = [],
         rescaling: bool = True,
         # Based policy common arguments
         gamma: float = 0.99,
@@ -84,6 +85,7 @@ class LagrangianPolicy(BasePolicy):
         self.use_lagrangian = use_lagrangian
         self.cost_limit = [cost_limit] * (self.critics_num -
                                           1) if np.isscalar(cost_limit) else cost_limit
+        self.constraint_type = constraint_type
         # suppose there are M constraints, then critics_num = M + 1
         if self.use_lagrangian:
             assert len(
@@ -96,7 +98,12 @@ class LagrangianPolicy(BasePolicy):
             self.lag_optims = []
 
     def pre_update_fn(self, stats_train: Dict, **kwarg) -> None:
-        cost_values = stats_train["avg_total_cost"]
+        cost_values = []
+        if "distance" in self.constraint_type: 
+            cost_values.append(stats_train["avg_cost_distance"])
+        if "speed" in self.constraint_type: 
+            cost_values.append(stats_train["avg_cost_speed"])
+        # cost_values = stats_train["avg_total_cost"]
         self.update_lagrangian(cost_values)
 
     def update_cost_limit(self, cost_limit: float) -> None:
@@ -117,6 +124,7 @@ class LagrangianPolicy(BasePolicy):
         if np.isscalar(cost_values):
             cost_values = [cost_values]
         for i, lag_optim in enumerate(self.lag_optims):
+            # print(cost_values, self.cost_limit, self.lag_optims)
             lag_optim.step(cost_values[i], self.cost_limit[i])
 
     def get_extra_state(self):
