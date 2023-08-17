@@ -96,6 +96,7 @@ class PPOLagrangian(LagrangianPolicy):
         use_lagrangian: bool = True,
         lagrangian_pid: Tuple = (0.05, 0.0005, 0.1),
         cost_limit: Union[List, float] = np.inf,
+        constraint_type:list[str] = [],
         rescaling: bool = True,
         # Base policy common arguments
         gamma: float = 0.99,
@@ -109,7 +110,7 @@ class PPOLagrangian(LagrangianPolicy):
         lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None
     ) -> None:
         super().__init__(
-            actor, critics, dist_fn, logger, use_lagrangian, lagrangian_pid, cost_limit,
+            actor, critics, dist_fn, logger, use_lagrangian, lagrangian_pid, cost_limit, constraint_type,
             rescaling, gamma, max_batchsize, reward_normalization, deterministic_eval,
             action_scaling, action_bound_method, observation_space, action_space,
             lr_scheduler
