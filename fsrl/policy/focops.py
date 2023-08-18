@@ -119,7 +119,7 @@ class FOCOPS(BasePolicy):
         self._actor_critic: ActorCritic
 
     def pre_update_fn(self, stats_train: Dict, **kwarg) -> Any:
-        self._ave_cost_return = stats_train["cost"]
+        self._avg_cost_return = stats_train["cost"]
 
     def update_cost_limit(self, cost_limit: float) -> None:
         """Update the cost limit threshold.
@@ -153,7 +153,7 @@ class FOCOPS(BasePolicy):
         return batch
 
     def nu_loss(self, batch: Batch):
-        loss_nu = self.cost_limit - self._ave_cost_return
+        loss_nu = self.cost_limit - self._avg_cost_return
         self._nu += -self._nu_lr * loss_nu
         self._nu = torch.clamp(self._nu, 0, self._nu_max)
         stats_nu = {"loss/nu_loss": loss_nu, "loss/nu_value": self._nu.detach().item()}

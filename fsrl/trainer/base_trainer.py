@@ -293,7 +293,7 @@ class BaseTrainer(ABC):
         }
         # Check for different constraints
         if "lines" in self.constraint_type:
-            info_dict["test/cost_distance"] = stats_test["avg_cost_distance"]
+            info_dict["test/cost_distance"] = stats_test["avg_cost_lines"]
         if "speed" in self.constraint_type:
             info_dict["test/cost_speed"] = stats_test["avg_cost_speed"]
         # TODO add more constraints here
@@ -317,7 +317,7 @@ class BaseTrainer(ABC):
         }
         # Check for different constraints
         if "lines" in self.constraint_type:
-            info_dict["train/cost_distance"] = stats_train["avg_cost_distance"]
+            info_dict["train/cost_distance"] = stats_train["avg_cost_lines"]
         if "speed" in self.constraint_type:
             info_dict["train/cost_speed"] = stats_train["avg_cost_speed"]
         # TODO add more constraints here

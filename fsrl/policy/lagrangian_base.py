@@ -100,7 +100,7 @@ class LagrangianPolicy(BasePolicy):
     def pre_update_fn(self, stats_train: Dict, **kwarg) -> None:
         cost_values = []
         if "lines" in self.constraint_type: 
-            cost_values.append(stats_train["avg_cost_distance"])
+            cost_values.append(stats_train["avg_cost_lines"])
         if "speed" in self.constraint_type: 
             cost_values.append(stats_train["avg_cost_speed"])
         # cost_values = stats_train["avg_total_cost"]

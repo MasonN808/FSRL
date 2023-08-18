@@ -435,7 +435,7 @@ class FastCollector(object):
 
         # Append the costs if they exist
         if "lines" in self.constraint_type:
-            dict_out["avg_cost_distance"] = total_cost_distance / episode_count
+            dict_out["avg_cost_lines"] = total_cost_distance / episode_count
         if "speed" in self.constraint_type:
             dict_out["avg_cost_speed"] = total_cost_speed / episode_count
 
