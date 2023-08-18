@@ -386,7 +386,7 @@ class BasePolicy(ABC, nn.Module):
         return ~buffer.terminated[indices]
 
     def get_metrics(self, batch: Batch):
-        cost = batch.info.get("cost", np.zeros((len(batch.rew), len(self.constraint_type)))).cost
+        cost = batch.info.get("cost", np.zeros((len(batch.rew), len(self.constraint_type))))
         cost = cost.astype(batch.rew.dtype)
         if cost.ndim == 2:
             metrics = [batch.rew, cost[:, 0], cost[:, 1]]

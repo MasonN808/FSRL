@@ -183,9 +183,9 @@ class FastCollector(object):
                 )
                 obs_reset = processed_data.get("obs", obs_reset)
                 info = processed_data.get("info", info)
-            print(self.data.info)
-            print(info)
-            self.data.info[local_ids] = info
+
+            assert len(local_ids) == len(info), "Mismatched lengths for indices and values"
+            self.data.info[local_ids].info = info
         else:
             obs_reset = rval
             if self.preprocess_fn:
