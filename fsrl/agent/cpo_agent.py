@@ -194,6 +194,7 @@ class CPOAgent(OnpolicyAgent):
             gae_lambda=gae_lambda,
             advantage_normalization=advantage_normalization,
             cost_limit=cost_limit,
+            constraint_type=constraint_type,
             # Base policy common arguments
             gamma=gamma,
             max_batchsize=max_batchsize,
