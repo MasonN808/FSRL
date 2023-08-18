@@ -66,7 +66,6 @@ class BaseAgent(ABC):
         render_mode: str = "rgb_array",
         train_mode: bool = False,
         experiment_id: str = "----",
-        constraints: bool = True,
         random_starting_locations: list[list[float]] = [[0,0]],
         algorithm: str = "None",
         convert_to_gif: bool = False,
@@ -106,8 +105,8 @@ class BaseAgent(ABC):
                 filename = Path(name)
             video_recorder = VideoRecorder(test_env, name)
             # Collector
-            eval_collector = FastCollector(self.policy, test_env, constraints=constraints)
-            result = eval_collector.collect(n_episode=1, render=render, video_recorder=video_recorder, constraints=False)
+            eval_collector = FastCollector(self.policy, test_env, constraint_type=self.constraint_type)
+            result = eval_collector.collect(n_episode=eval_episodes, render=render, video_recorder=video_recorder)
 
             # Optionally turn the mp4 into a gif immediately
             if convert_to_gif:
@@ -197,10 +196,11 @@ class OffpolicyAgent(BaseAgent):
             train_envs,
             buffer,
             exploration_noise=True,
+            constraint_type=self.constraint_type
         )
 
         test_collector = FastCollector(
-            self.policy, test_envs
+            self.policy, test_envs, constraint_type=self.constraint_type
         ) if test_envs is not None else None
 
         def stop_fn(reward, cost):
@@ -220,6 +220,7 @@ class OffpolicyAgent(BaseAgent):
             max_epoch=epoch,
             batch_size=batch_size,
             cost_limit=self.cost_limit,
+            constraint_type=self.constraint_type,
             step_per_epoch=step_per_epoch,
             update_per_step=update_per_step,
             episode_per_test=testing_num,
@@ -313,9 +314,10 @@ class OnpolicyAgent(BaseAgent):
             train_envs,
             buffer,
             exploration_noise=True,
+            constraint_type=self.constraint_type
         )
         test_collector = FastCollector(
-            self.policy, test_envs
+            self.policy, test_envs, constraint_type=self.constraint_type
         ) if test_envs is not None else None
 
         def stop_fn(reward, cost):
@@ -335,6 +337,7 @@ class OnpolicyAgent(BaseAgent):
             max_epoch=epoch,
             batch_size=batch_size,
             cost_limit=self.cost_limit,
+            constraint_type=self.constraint_type,
             step_per_epoch=step_per_epoch,
             repeat_per_collect=repeat_per_collect,
             episode_per_test=testing_num,
