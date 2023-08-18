@@ -183,6 +183,8 @@ class FastCollector(object):
                 )
                 obs_reset = processed_data.get("obs", obs_reset)
                 info = processed_data.get("info", info)
+            print(self.data.info)
+            print(info)
             self.data.info[local_ids] = info
         else:
             obs_reset = rval
@@ -245,7 +247,7 @@ class FastCollector(object):
 
         step_count = 0
         total_cost = 0
-        if "distance" in self.constraint_type:
+        if "lines" in self.constraint_type:
             total_cost_distance = 0
         if "speed" in self.constraint_type:
             total_cost_speed = 0
@@ -329,12 +331,13 @@ class FastCollector(object):
                     )
                 )
             # Note: same logic is in base_policy in get_metrics
-            cost = self.data.info.get("cost", np.zeros((len(rew), len(self.constraint_type)))).cost # NOTE need to use .cost since we need to extract it from a Batch object
+            # cost = self.data.info.get("cost", np.zeros((len(rew), len(self.constraint_type)))).cost # NOTE need to use .cost since we need to extract it from a Batch object
+            cost = self.data.info.get("cost", np.zeros((len(rew), len(self.constraint_type)))) # NOTE need to use .cost since we need to extract it from a Batch object
             total_cost += np.sum(cost)
             traversed = [False]*len(self.constraint_type)
             # Append the costs in the order recevived in constraint_type
             for i in range(len(self.constraint_type)):
-                if self.constraint_type[i]=="distance" and not traversed[i]:
+                if self.constraint_type[i]=="lines" and not traversed[i]:
                     total_cost_distance += np.sum(cost, axis=0)[i]
                 elif self.constraint_type[i]=="speed" and not traversed[i]:
                     total_cost_speed += np.sum(cost, axis=0)[i]
@@ -431,7 +434,7 @@ class FastCollector(object):
         }
 
         # Append the costs if they exist
-        if "distance" in self.constraint_type:
+        if "lines" in self.constraint_type:
             dict_out["avg_cost_distance"] = total_cost_distance / episode_count
         if "speed" in self.constraint_type:
             dict_out["avg_cost_speed"] = total_cost_speed / episode_count

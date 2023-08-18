@@ -254,7 +254,7 @@ class BaseTrainer(ABC):
 
         cost = []
         for constraint_type in self.constraint_type:
-            if constraint_type == "distance":
+            if constraint_type == "lines":
                 cost_distance = self.logger.get_mean(mode + "/cost_distance")
                 cost.append(cost_distance)
             if constraint_type == "speed":
@@ -292,7 +292,7 @@ class BaseTrainer(ABC):
                 "test/length": int(stats_test["len"]),
         }
         # Check for different constraints
-        if "distance" in self.constraint_type:
+        if "lines" in self.constraint_type:
             info_dict["test/cost_distance"] = stats_test["avg_cost_distance"]
         if "speed" in self.constraint_type:
             info_dict["test/cost_speed"] = stats_test["avg_cost_speed"]
@@ -316,7 +316,7 @@ class BaseTrainer(ABC):
                 "train/length": int(stats_train["len"]),
         }
         # Check for different constraints
-        if "distance" in self.constraint_type:
+        if "lines" in self.constraint_type:
             info_dict["train/cost_distance"] = stats_train["avg_cost_distance"]
         if "speed" in self.constraint_type:
             info_dict["train/cost_speed"] = stats_train["avg_cost_speed"]

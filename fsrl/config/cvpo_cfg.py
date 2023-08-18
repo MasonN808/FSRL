@@ -7,7 +7,7 @@ class TrainCfg:
     # general task params
     task: str = "SafetyCarCircle-v0"
     cost_limit: Union[List, float] = field(default_factory=lambda: [5.0, 5.0])
-    constraint_type: list[str] = field(default_factory=lambda: ["distance", "speed"])
+    constraint_type: list[str] = field(default_factory=lambda: ["lines", "speed"])
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train
     seed: int = 10
