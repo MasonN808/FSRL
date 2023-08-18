@@ -114,7 +114,12 @@ class CPO(BasePolicy):
         self.device = device
 
     def pre_update_fn(self, stats_train: Dict, **kwarg) -> Any:
-        self._ave_cost_return = stats_train["avg_total_cost"]
+        self._avg_cost_return = stats_train["avg_total_cost"]
+        if "lines" in self._constraint_type:
+            self._avg_cost_return_lines = stats_train["avg_cost_lines"]
+        if "speed" in self._constraint_type:
+            self._avg_cost_return_speed = stats_train["avg_cost_speed"]
+            
 
     def update_cost_limit(self, cost_limit: float) -> None:
         """Update the cost limit threshold.
@@ -170,12 +175,18 @@ class CPO(BasePolicy):
         return torch.mean(torch.exp(logp - logp_old) * adv)
 
     def _get_cost_surrogate(
-        self, logp: torch.Tensor, logp_old: torch.Tensor, cadv: torch.Tensor
-    ) -> torch.Tensor:
-        cost_surrogate = self._ave_cost_return + torch.mean(
-            torch.exp(logp - logp_old) * cadv
-        ) - torch.mean(cadv)
-        return cost_surrogate
+        self, logp: torch.Tensor, logp_old: torch.Tensor, cadv: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        cost_surrogate_total = self._avg_cost_return + torch.mean(
+            torch.exp(logp - logp_old) * cadv) - torch.mean(cadv)
+        cost_surrogates = []
+        if self._constraint_type:
+            if "lines" in self._constraint_type:
+                cost_surrogates.append(self._avg_cost_return_lines + torch.mean(
+                torch.exp(logp - logp_old) * cadv) - torch.mean(cadv))
+            if "speed" in self._constraint_type:
+                cost_surrogates.append(self._avg_cost_return_speed + torch.mean(
+                torch.exp(logp - logp_old) * cadv) - torch.mean(cadv))
+        return cost_surrogate_total, cost_surrogates
 
     def _MVP(self, v: torch.Tensor, flat_kl_grad: torch.Tensor) -> torch.Tensor:
         """Matrix vector product."""
@@ -245,21 +256,30 @@ class CPO(BasePolicy):
         dist_old = self.dist_fn(*(minibatch.mean_old, minibatch.std_old))  # type: ignore
         kl = kl_divergence(dist_old, dist).mean()
         objective = self._get_objective(logp, minibatch.logp_old, minibatch.advs[..., 0])
-        cost_surrogate = self._get_cost_surrogate(
+        cost_surrogate_total, cost_surrogates = self._get_cost_surrogate(
             logp, minibatch.logp_old, minibatch.advs[..., 1]
         )
-        loss_actor_total = objective + cost_surrogate
+        loss_actor_total = objective + cost_surrogate_total
 
         # The objective gradient [Equation (11) https://arxiv.org/abs/1705.10528]
         grad_g = self._get_flat_grad(objective, self.actor, retain_graph=True)
-        grad_b = self._get_flat_grad(-cost_surrogate, self.actor, retain_graph=True)
+        # The cost gradients for each surrogate cost functions [Equation (11) https://arxiv.org/abs/1705.10528]
+        grad_b = torch.stack([self._get_flat_grad(-cost_surrogate, self.actor, retain_graph=True) for cost_surrogate in cost_surrogates])
+        print(grad_b)
+        print(cost_surrogates)
         flat_kl_grad = self._get_flat_grad(kl, self.actor, create_graph=True)
         H_inv_g = self._conjugate_gradients(grad_g, flat_kl_grad)
         approx_g = self._MVP(H_inv_g, flat_kl_grad)
-        c_value = cost_surrogate - self._cost_limit
+
+        # c_value = cost_surrogates - torch.as_tensor(self._cost_limit)
+        # c_value = cost_surrogates - self._cost_limit
+        c_value = list(map(lambda a, b: a - b, cost_surrogates, self._cost_limit))
+        print(self._cost_limit)
+        print(c_value)
 
         # solve Lagrangian problem
         EPS = 1e-8
+        # for i, grad_b_i in enumerate(grad_b):
         if torch.dot(grad_b, grad_b) <= EPS and c_value < 0:
             H_inv_b, scalar_r, scalar_s, A_value, B_value = [
                 torch.zeros(1) for _ in range(5)
