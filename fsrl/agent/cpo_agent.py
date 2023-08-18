@@ -72,7 +72,8 @@ class CPOAgent(OnpolicyAgent):
         self,
         env: gym.Env,
         logger: BaseLogger = BaseLogger(),
-        cost_limit: float = 10,
+        cost_limit: list[float] = [],
+        constraint_type: list[str] =[],
         device: str = "cpu",
         thread: int = 4,  # if use "cpu" to train
         seed: int = 10,
@@ -102,6 +103,7 @@ class CPOAgent(OnpolicyAgent):
 
         self.logger = logger
         self.cost_limit = cost_limit
+        self.constraint_type =constraint_type
 
         # set seed and computing
         seed_all(seed)
@@ -113,8 +115,8 @@ class CPOAgent(OnpolicyAgent):
         if isinstance(env.observation_space, Dict):
             # TODO: This is hardcoded please fix
             dict_state_shape = {
-                "achieved_goal": (6,),
                 "observation": (6,),
+                "achieved_goal": (6,),
                 "desired_goal": (6,)
             }
             decorator_fn, state_shape = get_dict_state_decorator(dict_state_shape, list(dict_state_shape.keys()))
@@ -137,35 +139,21 @@ class CPOAgent(OnpolicyAgent):
        
         # Model
         net = Net(state_shape, hidden_sizes=hidden_sizes, device=device)
+
+        use_cuda = torch.cuda.is_available()
+        # Create Actor
         # W/ DataParallelNet For cuda Parallelization
-        if torch.cuda.is_available():
-            actor = DataParallelNet(
-                ActorProb(
-                    net,
-                    action_shape,
-                    max_action=max_action,
-                    unbounded=unbounded,
-                    device=None
-                ).to(device)
-            )
-            critic = [
-                DataParallelNet(Critic(
-                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
-                    device=None
-                ).to(device)) for _ in range(2)
-            ]
-        else:
-            actor = ActorProb(
-                net, action_shape, max_action=max_action, unbounded=unbounded, device=device
-            ).to(device)
-            critic = [
-                Critic(
-                    Net(state_shape, hidden_sizes=hidden_sizes, device=device),
-                    device=device
-                ).to(device) for _ in range(2)
-            ]
-            
-        # torch.nn.init.constant_(actor.sigma_param, -0.5)
+        actor_constructor = ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, device=None if use_cuda else device)
+        actor = DataParallelNet(actor_constructor).to(device) if use_cuda else actor_constructor.to(device)
+
+        # Create Critics
+        # W/ DataParallelNet For cuda Parallelization
+        critic_constructor = lambda: Critic(Net(state_shape, hidden_sizes=hidden_sizes, device=device), device=None if use_cuda else device).to(device)
+        critic = [DataParallelNet(critic_constructor()) for _ in range(2)] if use_cuda else [critic_constructor() for _ in range(2)]
+
+        if not use_cuda:
+            torch.nn.init.constant_(actor.sigma_param, -0.5)
+
         actor_critic = ActorCritic(actor, critic)
 
         # orthogonal initialization
@@ -181,8 +169,8 @@ class CPOAgent(OnpolicyAgent):
                 if isinstance(m, torch.nn.Linear):
                     torch.nn.init.zeros_(m.bias)
                     m.weight.data.copy_(0.01 * m.weight.data)
-        # optim = torch.optim.Adam(actor_critic.parameters(), lr=lr)
-        optim = torch.optim.Adam(nn.ModuleList(critic).parameters(), lr=lr)
+        optim = torch.optim.Adam(actor_critic.parameters(), lr=lr)
+        # optim = torch.optim.Adam(nn.ModuleList(critic).parameters(), lr=lr)
         
         # replace DiagGuassian with Independent(Normal) which is equivalent pass *logits
         # to be consistent with policy.forward
