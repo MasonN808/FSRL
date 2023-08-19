@@ -224,7 +224,10 @@ class BaseTrainer(ABC):
         self.logger.store(tab="update", **update_info)
 
         if self.epoch % self.save_model_interval == 0:
-            self.logger.save_checkpoint()
+            self.logger.save_checkpoint(suffix=f'epoch-{self.epoch}')
+
+        # if self.epoch % 10 == 0:
+        #     self.logger.save_checkpoint()
 
         if self.perf_is_better(test=True):
             self.logger.save_checkpoint(suffix="best")
