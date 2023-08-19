@@ -77,7 +77,7 @@ class CVPO(BasePolicy):
         action_space: gym.Space,
         # CVPO specific arguments
         dist_fn: Type[torch.distributions.Distribution],
-        max_episode_steps: int,
+        max_episode_steps: int = 1000,
         logger: Optional[BaseLogger] = BaseLogger(),
         cost_limit: Union[List, float] = np.inf,
         tau: float = 0.05,
