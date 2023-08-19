@@ -1,9 +1,11 @@
 from typing import Optional, Tuple
+from gymnasium.spaces.dict import Dict
+from gymnasium.spaces.discrete import Discrete # Must be gymnasium, not gym for type checking
 
 import gymnasium as gym
 import torch
 import torch.nn as nn
-from tianshou.utils.net.common import Net
+from tianshou.utils.net.common import Net, get_dict_state_decorator, DataParallelNet
 from tianshou.utils.net.continuous import ActorProb
 from torch.distributions import Independent, Normal
 
@@ -83,6 +85,7 @@ class CVPOAgent(OffpolicyAgent):
         logger: BaseLogger = BaseLogger(),
         # general task params
         cost_limit: float = 10,
+        constraint_type: list[str] = [],
         device: str = "cpu",
         thread: int = 4,  # if use "cpu" to train
         seed: int = 10,
@@ -117,64 +120,85 @@ class CVPOAgent(OffpolicyAgent):
 
         self.logger = logger
         self.cost_limit = cost_limit
-
+        self.constraint_type = constraint_type
         # set seed and computing
         seed_all(seed)
-        torch.set_num_threads(thread)
+        if not torch.cuda.is_available():
+            torch.set_num_threads(thread)
 
-        # model
-        state_shape = env.observation_space.shape or env.observation_space.n
+        # Model
+        # Get the shapes of the states and actions to be transfered to a tensor
+        if isinstance(env.observation_space, Dict):
+            # TODO: This is hardcoded please fix
+            dict_state_shape = {
+                "observation": (6,),
+                "achieved_goal": (6,),
+                "desired_goal": (6,)
+            }
+            decorator_fn, state_shape = get_dict_state_decorator(dict_state_shape, list(dict_state_shape.keys()))
+            global Net, ActorProb, DoubleCritic, SingleCritic, DataParallelNet # Fixes UnboundLocalError
+            # Apply decorator to overwrite the forward pass in the Tensorflow module to allow for dict object
+            Net = decorator_fn(Net)
+            ActorProb = decorator_fn(ActorProb)
+            DoubleCritic = decorator_fn(DoubleCritic)
+            SingleCritic = decorator_fn(SingleCritic)
+            DataParallelNet = decorator_fn(DataParallelNet)
+        else: 
+            state_shape = env.observation_space.shape or env.observation_space.n
+
         action_shape = env.action_space.shape or env.action_space.n
-        max_action = env.action_space.high[0]
+
+        if isinstance(env.action_space, Discrete):
+            max_action = env.action_space.n
+        else:
+            # max_action = env.action_space.n
+            max_action = env.action_space.high[0]
 
         assert hasattr(
             env.spec, "max_episode_steps"
         ), "Please use an env wrapper to provide 'max_episode_steps' for CVPO"
 
+        use_cuda = torch.cuda.is_available()
+        # Create Actor
         net = Net(state_shape, hidden_sizes=hidden_sizes, device=device)
-        actor = ActorProb(
-            net,
-            action_shape,
-            max_action=max_action,
-            device=device,
-            conditioned_sigma=conditioned_sigma,
-            unbounded=unbounded
-        ).to(device)
+        actor_constructor = ActorProb(net, action_shape, max_action=max_action, unbounded=unbounded, conditioned_sigma=conditioned_sigma, device=None if use_cuda else device)
+        actor = DataParallelNet(actor_constructor).to(device) if use_cuda else actor_constructor.to(device)
         actor_optim = torch.optim.Adam(actor.parameters(), lr=actor_lr)
 
-        critics = []
+    
+        # Create Critics
+        if double_critic:
+            net1 = Net(
+                state_shape,
+                action_shape,
+                hidden_sizes=hidden_sizes,
+                concat=True,
+                device=device
+            )
+            net2 = Net(
+                state_shape,
+                action_shape,
+                hidden_sizes=hidden_sizes,
+                concat=True,
+                device=device
+            )
+            critic_constructor = lambda: DoubleCritic(net1, net2, device=None if use_cuda else device).to(device)
+        else:
+            net_c = Net(
+                state_shape,
+                action_shape,
+                hidden_sizes=hidden_sizes,
+                concat=True,
+                device=device
+            )
+            critic_constructor = lambda: SingleCritic(net_c, device=None if use_cuda else device).to(device)
 
-        for _ in range(2):
-            if double_critic:
-                net1 = Net(
-                    state_shape,
-                    action_shape,
-                    hidden_sizes=hidden_sizes,
-                    concat=True,
-                    device=device
-                )
-                net2 = Net(
-                    state_shape,
-                    action_shape,
-                    hidden_sizes=hidden_sizes,
-                    concat=True,
-                    device=device
-                )
-                critics.append(DoubleCritic(net1, net2, device=device).to(device))
-            else:
-                net_c = Net(
-                    state_shape,
-                    action_shape,
-                    hidden_sizes=hidden_sizes,
-                    concat=True,
-                    device=device
-                )
-                critics.append(SingleCritic(net_c, device=device).to(device))
-
+        critics = [DataParallelNet(critic_constructor()) for _ in range(2)] if use_cuda else [critic_constructor() for _ in range(2)]
         critic_optim = torch.optim.Adam(
             nn.ModuleList(critics).parameters(), lr=critic_lr
         )
-        if not conditioned_sigma:
+
+        if not conditioned_sigma and not use_cuda:
             torch.nn.init.constant_(actor.sigma_param, -0.5)
         actor_critic = ActorCritic(actor, critics)
         # orthogonal initialization
