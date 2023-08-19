@@ -226,7 +226,8 @@ class CVPOAgent(OffpolicyAgent):
             logger=logger,
             action_space=env.action_space,
             dist_fn=dist,
-            max_episode_steps=env.spec.max_episode_steps,
+            # max_episode_steps=env.spec.max_episode_steps, # TODO fix this in environment
+            max_episode_steps=2000, # TODO currently hardcoded
             cost_limit=cost_limit,
             tau=tau,
             gamma=gamma,
