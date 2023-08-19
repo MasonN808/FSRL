@@ -256,7 +256,7 @@ class CPO(BasePolicy):
         flat_kl_grad = self._get_flat_grad(kl, self.actor, create_graph=True)
         H_inv_g = self._conjugate_gradients(grad_g, flat_kl_grad)
         approx_g = self._MVP(H_inv_g, flat_kl_grad)
-        c_value = cost_surrogate - self._cost_limit
+        c_value = cost_surrogate - torch.Tensor(self._cost_limit)
 
         # solve Lagrangian problem
         EPS = 1e-8
