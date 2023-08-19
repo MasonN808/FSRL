@@ -266,7 +266,7 @@ class OnpolicyAgent(BaseAgent):
         testing_num: int = 2,
         batch_size: int = 512,
         reward_threshold: float = 450,
-        save_interval: int = 4,
+        save_interval: int = 1,
         resume: bool = False,
         save_ckpt: bool = True,
         verbose: bool = True,
