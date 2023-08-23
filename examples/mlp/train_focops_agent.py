@@ -154,13 +154,13 @@ def train(args: TrainCfg):
         agent.policy.eval()
         collector = FastCollector(agent.policy, env)
         result = collector.collect(n_episode=10, render=args.render)
-        rews, lens, cost = result["rew"], result["len"], result["cost"]
+        rews, lens, cost = result["rew"], result["len"], result["avg_total_cost"]
         print(f"Final eval reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")
 
         agent.policy.train()
         collector = FastCollector(agent.policy, env)
         result = collector.collect(n_episode=10, render=args.render)
-        rews, lens, cost = result["rew"], result["len"], result["cost"]
+        rews, lens, cost = result["rew"], result["len"], result["avg_total_cost"]
         print(f"Final train reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")
 
 

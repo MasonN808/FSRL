@@ -90,7 +90,7 @@ def eval(args: EvalConfig):
     )
     eval_collector = FastCollector(policy, test_envs)
     result = eval_collector.collect(n_episode=args.eval_episodes, render=args.render)
-    rews, lens, cost = result["rew"], result["len"], result["cost"]
+    rews, lens, cost = result["rew"], result["len"], result["avg_total_cost"]
     print(f"Eval reward: {rews}, cost: {cost}, length: {lens}")
 
 
