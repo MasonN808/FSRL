@@ -389,11 +389,7 @@ class BasePolicy(ABC, nn.Module):
         cost = batch.info.get("cost", np.zeros((len(batch.rew), len(self.constraint_type))))
         cost = cost.astype(batch.rew.dtype)
         # If cost is a 2D array, extract its columns; otherwise, just use it directly
-        metrics = [batch.rew] + [cost[:, i] for i in range(cost.shape[1])] if cost.ndim == 2 else [batch.rew, cost] #TODO make sure this is right
-        # if cost.ndim == 2:
-        #     metrics = [batch.rew, cost[:, 0], cost[:, 1]]
-        # else:
-        #     metrics = [batch.rew, cost]
+        metrics = [batch.rew] + [cost[:, i] for i in range(cost.shape[1])] if cost.ndim >= 2 else [batch.rew, cost]
         return metrics
 
 
