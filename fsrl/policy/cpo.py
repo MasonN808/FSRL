@@ -277,6 +277,7 @@ class CPO(BasePolicy):
             A_value = scalar_q - scalar_r**2 / scalar_s
             # does safety boundary intersect trust region? (positive = yes)
             B_value = 2 * self._delta - c_value**2 / scalar_s
+
             if c_value < 0 and B_value < 0:
                 optim_case = 3
             elif c_value < 0 and B_value >= 0:

@@ -386,7 +386,11 @@ class BasePolicy(ABC, nn.Module):
         return ~buffer.terminated[indices]
 
     def get_metrics(self, batch: Batch):
-        cost = batch.info.get("cost", np.zeros((len(batch.rew), len(self.constraint_type))))
+        if len(self.constraint_type) == 0:
+            cost = np.zeros((len(batch.rew), 1))
+        else:
+            cost = batch.info.get("cost", np.zeros((len(batch.rew), len(self.constraint_type))))
+        # if cost["cost"].size != 0:
         cost = cost.astype(batch.rew.dtype)
         # If cost is a 2D array, extract its columns; otherwise, just use it directly
         metrics = [batch.rew] + [cost[:, i] for i in range(cost.shape[1])] if cost.ndim >= 2 else [batch.rew, cost]

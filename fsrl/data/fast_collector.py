@@ -332,7 +332,11 @@ class FastCollector(object):
                 )
             # Note: same logic is in base_policy in get_metrics
             # cost = self.data.info.get("cost", np.zeros((len(rew), len(self.constraint_type)))).cost # NOTE need to use .cost since we need to extract it from a Batch object
-            cost = self.data.info.get("cost", np.zeros((len(rew), len(self.constraint_type)))) # NOTE need to use .cost since we need to extract it from a Batch object
+            if len(self.constraint_type) == 0:
+                cost = np.zeros((len(rew), 1))
+            else:
+                cost = self.data.info.get("cost", np.zeros((len(rew), len(self.constraint_type)))) # NOTE need to use .cost since we need to extract it from a Batch object
+
             total_cost += np.sum(cost)
             traversed = [False]*len(self.constraint_type)
             # Append the costs in the order recevived in constraint_type
