@@ -194,6 +194,7 @@ class PPOLagrangian(LagrangianPolicy):
             loss_actor_rew = -torch.min(surr1, surr2).mean()
 
         # compute safety loss
+        # These are the cost values
         values = [ratio * batch.advs[..., i]
                   for i in range(1, self.critics_num)] if self.use_lagrangian else []
         loss_actor_safety, stats_actor = self.safety_loss(values)
