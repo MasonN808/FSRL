@@ -8,7 +8,7 @@ import uuid
 from typing import Dict, List, Optional, Sequence
 import gymnasium as gym
 import logging
-# from moviepy.editor import VideoFileClip # TODO: Fix runtime error (10/31)
+from moviepy.editor import VideoFileClip # TODO: Fix runtime error (10/31)
 logger = logging.getLogger(__name__)
 
 import numpy as np
@@ -220,7 +220,7 @@ def load_environment(env_config, render_mode=None):
         logger.info("This environment does not support configuration. {}".format(e))
     return env
 
-# def mp4_to_gif(mp4_path: str, gif_path: str):
-#     videoClip = VideoFileClip(mp4_path)
-#     videoClip.write_gif(gif_path, fps=60, opt="OptimizePlus", fuzz=10)
+def mp4_to_gif(mp4_path: str, gif_path: str):
+    videoClip = VideoFileClip(mp4_path)
+    videoClip.write_gif(gif_path, fps=60, opt="OptimizePlus", fuzz=10)
 

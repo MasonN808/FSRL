@@ -144,6 +144,7 @@ class LagrangianPolicy(BasePolicy):
         This function is called from load_state_dict() to handle any extra state found
         within the state_dict.
         """
+        # TODO: This does not work with PPOL when Lagrange multiplier is set to 0/False
         if "_extra_state" in state:
             lag_optim_cfg = state["_extra_state"]
             if lag_optim_cfg and self.lag_optims:
