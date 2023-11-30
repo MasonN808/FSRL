@@ -17,7 +17,7 @@ class TrainCfg:
     lr: float = 1e-3
     hidden_sizes: Tuple[int, ...] = (128, 128)
     unbounded: bool = False
-    last_layer_scale: bool = False
+    last_layer_scale: bool = False #Whether to scale the last layer output for the policy
     # CPO specific arguments
     target_kl: float = 0.01
     backtrack_coeff: float = 0.8
